@@ -1,0 +1,15 @@
+# Railway/Render configuration
+
+# Build command
+build:
+  npm ci --only=production
+
+# Start command  
+start:
+  npm start
+
+# Environment variables needed:
+# - DATABASE_URL or individual DB_* vars
+# - JWT_SECRET
+# - NODE_ENV=production
+# - CORS_ORIGIN (frontend URL)

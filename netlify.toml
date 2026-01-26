@@ -1,0 +1,15 @@
+# Netlify/Vercel deployment configuration
+
+# Build settings
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA fallback - redirect all routes to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables (set in Netlify/Vercel dashboard)
+# VITE_API_URL = https://your-backend-url.railway.app/api
