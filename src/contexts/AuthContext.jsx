@@ -1,44 +1,61 @@
 // Authentication Context for React
 import { createContext, useContext, useState, useEffect } from 'react';
 
-// Default Admin User
-const DEFAULT_USER = {
-    id: '1',
-    nombre: 'Admin',
-    email: 'admin@grabadosexpress.com',
-    role: 'admin'
-};
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(DEFAULT_USER);
-    // We keep token state but it's not strictly enforced for navigation anymore
-    // If backend requires it, we might need to handle that, but for now we assume open access or existing token
+    const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('grabados_auth_token'));
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // Provide simplified auth methods that don't actually lock the user out
+    // Check if user is logged in on mount
+    useEffect(() => {
+        const savedToken = localStorage.getItem('grabados_auth_token');
+        const savedUser = localStorage.getItem('grabados_auth_user');
+        
+        if (savedToken && savedUser) {
+            setToken(savedToken);
+            setUser(JSON.parse(savedUser));
+        }
+        setLoading(false);
+    }, []);
 
     async function login(email, password) {
-        // Mock login
-        console.log('Login bypassed');
-        return { user: DEFAULT_USER, token: 'mock-token' };
-    }
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth?action=login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
 
-    async function register(nombre, email, password) {
-        // Mock register
-        console.log('Register bypassed');
-        return { user: DEFAULT_USER, token: 'mock-token' };
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al iniciar sesión');
+            }
+
+            // Save to state and localStorage
+            setUser(data.user);
+            setToken(data.token);
+            localStorage.setItem('grabados_auth_token', data.token);
+            localStorage.setItem('grabados_auth_user', JSON.stringify(data.user));
+
+            return data;
+        } catch (error) {
+            console.error('Login error:', error);
+            throw error;
+        }
     }
 
     function logout() {
-        console.log('Logout disabled');
-        // Do nothing or maybe show a message that login is disabled
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('grabados_auth_token');
+        localStorage.removeItem('grabados_auth_user');
     }
 
-    // Headers for API calls - try to send token if we have one, otherwise empty
-    // If backend middleware is strict, you might need to disable it there too
     function getAuthHeaders() {
         if (token) {
             return {
@@ -55,9 +72,8 @@ export function AuthProvider({ children }) {
         user,
         token,
         loading,
-        isAuthenticated: true, // Always authenticated
+        isAuthenticated: !!user,
         login,
-        register,
         logout,
         getAuthHeaders
     };

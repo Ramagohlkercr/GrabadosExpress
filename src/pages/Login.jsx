@@ -1,20 +1,18 @@
 // Login Page
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Mail, Lock, Eye, EyeOff, User, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogIn, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login, register, isAuthenticated } = useAuth();
+    const { login, isAuthenticated } = useAuth();
 
-    const [isRegister, setIsRegister] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const [formData, setFormData] = useState({
-        nombre: '',
         email: '',
         password: ''
     });
@@ -30,21 +28,11 @@ export default function Login() {
         setLoading(true);
 
         try {
-            if (isRegister) {
-                if (!formData.nombre.trim()) {
-                    toast.error('El nombre es requerido');
-                    setLoading(false);
-                    return;
-                }
-                await register(formData.nombre, formData.email, formData.password);
-                toast.success('¡Cuenta creada exitosamente!');
-            } else {
-                await login(formData.email, formData.password);
-                toast.success('¡Bienvenido!');
-            }
+            await login(formData.email, formData.password);
+            toast.success('¡Bienvenido!');
             navigate('/');
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.message || 'Credenciales inválidas');
         } finally {
             setLoading(false);
         }
@@ -55,35 +43,15 @@ export default function Login() {
             <div className="login-container">
                 <div className="login-header">
                     <div className="login-logo">
-                        <img src="/logo.svg" alt="Grabados Express" />
+                        <h2 style={{ fontSize: '2rem', color: 'var(--primary)' }}>✨ GrabadosExpress</h2>
                     </div>
-                    <h1>{isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}</h1>
+                    <h1>Iniciar Sesión</h1>
                     <p className="text-muted">
-                        {isRegister
-                            ? 'Completá tus datos para registrarte'
-                            : 'Ingresá a tu cuenta para continuar'
-                        }
+                        Ingresá a tu cuenta para continuar
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
-                    {isRegister && (
-                        <div className="form-group">
-                            <label className="form-label">
-                                <User size={16} />
-                                Nombre
-                            </label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                placeholder="Tu nombre"
-                                value={formData.nombre}
-                                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                autoFocus={isRegister}
-                            />
-                        </div>
-                    )}
-
                     <div className="form-group">
                         <label className="form-label">
                             <Mail size={16} />
@@ -95,7 +63,7 @@ export default function Login() {
                             placeholder="tu@email.com"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            autoFocus={!isRegister}
+                            autoFocus
                             required
                         />
                     </div>
@@ -112,7 +80,6 @@ export default function Login() {
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                minLength={6}
                                 required
                             />
                             <button
@@ -123,9 +90,6 @@ export default function Login() {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
-                        {isRegister && (
-                            <span className="form-hint">Mínimo 6 caracteres</span>
-                        )}
                     </div>
 
                     <button
@@ -138,20 +102,15 @@ export default function Login() {
                         ) : (
                             <LogIn size={20} />
                         )}
-                        {isRegister ? 'Crear Cuenta' : 'Iniciar Sesión'}
+                        Iniciar Sesión
                     </button>
                 </form>
 
                 <div className="login-footer">
-                    <p>
-                        {isRegister ? '¿Ya tenés cuenta?' : '¿No tenés cuenta?'}{' '}
-                        <button
-                            type="button"
-                            className="link-btn"
-                            onClick={() => setIsRegister(!isRegister)}
-                        >
-                            {isRegister ? 'Iniciar Sesión' : 'Registrate'}
-                        </button>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '1rem' }}>
+                        <strong>Usuarios autorizados:</strong><br />
+                        📧 ramiro@grabadosexpress.com<br />
+                        📧 rocio@grabadosexpress.com
                     </p>
                 </div>
             </div>
