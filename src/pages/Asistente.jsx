@@ -251,30 +251,16 @@ function parseOrderCommand(text) {
     const lowerText = text.toLowerCase().trim();
     const originalText = text.trim();
     
-    // Lista de provincias argentinas para referencia
-    const provinciasArg = [
-        'Buenos Aires', 'CABA', 'Capital Federal', 'Córdoba', 'Santa Fe', 'Mendoza', 'Tucumán',
-        'Salta', 'Entre Ríos', 'Misiones', 'Chaco', 'Corrientes', 'Santiago del Estero',
-        'San Juan', 'Jujuy', 'Río Negro', 'Neuquén', 'Formosa', 'Chubut',
-        'San Luis', 'Catamarca', 'La Rioja', 'La Pampa', 'Santa Cruz', 'Tierra del Fuego'
-    ];
-    
     // =====================================================
-    // DETECCIÓN FLEXIBLE - Sin importar el orden
+    // DETECCIÓN SIMPLE - Solo necesita cantidad o medidas
     // =====================================================
+    const tieneCantidad = /\d{2,4}\s*(?:etiquetas?|llaveros?|unid)?/i.test(lowerText);
+    const tieneMedidas = /\d+[.,]?\d*\s*[xX×]\s*\d+[.,]?\d*/i.test(lowerText);
+    const tieneProducto = /etiquetas?|llaveros?/i.test(lowerText);
+    const tienePalabraClave = /pedido|confirmar|confirmado|nuevo|crear/i.test(lowerText);
     
-    // Detectar si parece un pedido (más flexible, no requiere palabra clave al inicio)
-    const orderIndicators = [
-        /\d+\s*(?:etiquetas?|llaveros?|unid)/i,  // Tiene cantidad + producto
-        /(?:cliente|para)\s*[:\s]+/i,              // Menciona cliente
-        /(?:eco\s*cuero|ecocuero|cuero|acr[ií]lico)/i, // Menciona material
-        /\d+\s*[xX×]\s*\d+/,                        // Tiene medidas
-        /(?:pedido|confirmar|nuevo|crear)/i,       // Palabras clave de pedido
-        /(?:beige|suela|negro|blanco|natural)/i,   // Menciona color
-    ];
-    
-    const looksLikeOrder = orderIndicators.filter(p => p.test(lowerText)).length >= 2;
-    if (!looksLikeOrder) return null;
+    // Basta con tener cantidad O (medidas + producto) O palabra clave + algo
+    if (!tieneCantidad && !tieneMedidas && !tienePalabraClave) return null;
     
     const order = {
         clienteNombre: null,
@@ -292,336 +278,139 @@ function parseOrderCommand(text) {
     };
     
     // =====================================================
-    // EXTRAER CLIENTE (muy flexible)
+    // PASO 1: Extraer datos estructurados primero
     // =====================================================
-    // Palabras que NO son nombres de cliente
-    const palabrasExcluidas = [
-        'pedido', 'nuevo', 'crear', 'confirmar', 'confirmado',
-        'etiqueta', 'etiquetas', 'llavero', 'llaveros', 'logo', 'marca',
-        'eco', 'cuero', 'ecocuero', 'acrilico', 'acrílico', 'mdf', 'madera',
-        'beige', 'negro', 'blanco', 'suela', 'natural', 'marron', 'marrón',
-        'transparente', 'rojo', 'azul', 'rosa', 'verde', 'dorado', 'plateado',
-        'envio', 'envío', 'enviar', 'despacho', 'destino', 'entrega',
-        'total', 'precio', 'pesos', 'unidades', 'unid', 'cantidad',
-        'medida', 'medidas', 'tamaño', 'redonda', 'circular',
-        'rosario', 'cordoba', 'córdoba', 'mendoza', 'tucuman', 'tucumán',
-        'buenos', 'aires', 'santa', 'caba', 'capital', 'federal',
-    ];
     
-    const esNombreValido = (nombre) => {
-        if (!nombre || nombre.length < 2) return false;
-        const lower = nombre.toLowerCase().trim();
-        // Rechazar si es una palabra excluida o muy corta
-        if (palabrasExcluidas.some(p => lower === p || lower.startsWith(p + ' ') || lower.endsWith(' ' + p))) {
-            return false;
-        }
-        // Rechazar si contiene solo números o palabras clave
-        if (/^\d+$/.test(nombre)) return false;
-        // Debe tener al menos una letra
-        if (!/[a-záéíóúñ]/i.test(nombre)) return false;
-        return true;
-    };
-    
-    const clientePatterns = [
-        // "cliente: Juan" o "cliente Juan" o "para Juan"
-        /(?:cliente|para)[:\s]+["']?([A-ZÁÉÍÓÚÑa-záéíóúñ][A-ZÁÉÍÓÚÑa-záéíóúñ\s]{1,29})["']?(?=[,.\s]|$)/i,
-        // "a nombre de Juan Pérez"
-        /(?:a nombre de)[:\s]+["']?([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{2,30})["']?/i,
-        // Nombre entre comillas "Juan Pérez"
-        /["']([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)?)["']/,
-    ];
-    
-    for (const pattern of clientePatterns) {
-        const match = originalText.match(pattern);
-        if (match && match[1] && esNombreValido(match[1].trim())) {
-            order.clienteNombre = match[1].trim().replace(/^["']|["']$/g, '');
-            break;
-        }
-    }
-    
-    // =====================================================
-    // EXTRAER TELÉFONO
-    // =====================================================
-    const telPatterns = [
-        /(?:tel|telefono|teléfono|cel|celular|whatsapp|wsp|wa)[:\s]*[+]?(\d[\d\s\-]{7,15})/i,
-        /\b((?:11|15|(?:2|3)\d{2,3})[\s\-]?\d{3,4}[\s\-]?\d{4})\b/,  // Formato argentino
-    ];
-    
-    for (const pattern of telPatterns) {
-        const match = originalText.match(pattern);
-        if (match) {
-            order.clienteTelefono = match[1].replace(/[\s\-]/g, '');
-            break;
-        }
-    }
-    
-    // =====================================================
-    // EXTRAER CANTIDAD (muy flexible)
-    // =====================================================
-    const cantidadPatterns = [
-        /(\d{1,4})\s*(?:unidades|unid|u\b|etiquetas?|llaveros?|piezas?|pzas?)/i,
-        /(?:cantidad|cant|x)[:\s]*(\d{1,4})/i,
-        /(\d{2,4})\s+(?:de\s+)?(?:eco|cuero|acr)/i,  // "100 de ecocuero"
-        /(?:^|\s)(\d{2,4})(?:\s|,|$)/,  // Número suelto de 2-4 dígitos
-    ];
-    
-    for (const pattern of cantidadPatterns) {
-        const match = lowerText.match(pattern);
-        if (match) {
-            const num = parseInt(match[1]);
-            // Validar que sea una cantidad razonable (no una medida o precio)
-            if (num >= 10 && num <= 5000) {
-                order.cantidad = num;
+    // CANTIDAD - buscar número seguido de etiquetas/llaveros o número grande solo
+    let cantidadMatch = lowerText.match(/(\d{2,4})\s*(?:etiquetas?|llaveros?|unid(?:ades)?)/i);
+    if (!cantidadMatch) {
+        // Buscar número de 2-4 dígitos que no sea parte de medidas
+        const numeros = lowerText.match(/\b(\d{2,4})\b/g) || [];
+        for (const num of numeros) {
+            const n = parseInt(num);
+            // No debe ser parte de medidas (NxN) ni muy pequeño
+            if (n >= 30 && n <= 5000 && !lowerText.includes(`${num}x`) && !lowerText.includes(`x${num}`)) {
+                order.cantidad = n;
                 break;
             }
         }
+    } else {
+        order.cantidad = parseInt(cantidadMatch[1]);
     }
     
-    // =====================================================
-    // EXTRAER PRODUCTO
-    // =====================================================
+    // PRODUCTO
     if (/llavero/i.test(lowerText)) {
         order.producto = 'Llaveros';
         if (/mosqueton|mosquetón/i.test(lowerText)) {
             order.producto = 'Llaveros con Mosquetón';
         }
-    } else {
-        order.producto = 'Etiquetas';
     }
     
-    // =====================================================
-    // EXTRAER MATERIAL (muy flexible)
-    // =====================================================
-    const materiales = {
-        'eco cuero': 'ecocuero', 'ecocuero': 'ecocuero', 'eco-cuero': 'ecocuero',
-        'cuero genuino': 'cuero', 'cuero real': 'cuero', 'cuero legitimo': 'cuero',
-        'cuero': 'cuero',
-        'acrilico': 'acrilico', 'acrílico': 'acrilico', 'acri': 'acrilico',
-        'mdf': 'mdf', 'madera': 'mdf',
-    };
-    
-    for (const [alias, material] of Object.entries(materiales)) {
-        if (lowerText.includes(alias)) {
-            order.material = material;
-            break;
-        }
+    // MEDIDAS - formato NxN o N,NxN,N
+    const medidasMatch = originalText.match(/(\d+[.,]?\d*)\s*[xX×]\s*(\d+[.,]?\d*)/);
+    if (medidasMatch) {
+        const m1 = medidasMatch[1].replace(',', '.');
+        const m2 = medidasMatch[2].replace(',', '.');
+        order.medidas = `${m1}x${m2}cm`;
     }
     
-    // =====================================================
-    // EXTRAER MEDIDAS (muy flexible)
-    // =====================================================
-    const medidasPatterns = [
-        /(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(?:cm|centimetros)?/i,
-        /(?:medida|tamaño|tam)[:\s]*(\d+(?:[.,]\d+)?)\s*[xX×]\s*(\d+(?:[.,]\d+)?)/i,
-        /(?:de|en)\s+(\d+)\s*[xX×]\s*(\d+)/i,
-        /(redonda|circular|circulo)\s*(?:de\s*)?(\d+)\s*(?:cm)?/i,
-        /(\d+)\s*(?:cm\s*)?(?:redonda|circular|de diametro|diámetro)/i,
+    // LOCALIDAD - "de [ciudad]" o "en [ciudad]" o "[ciudad], [provincia]"
+    const localidadPatterns = [
+        /(?:de|en)\s+([a-záéíóúñ\s]{3,20})(?:\s*,|\s*$)/i,
+        /,\s*([a-záéíóúñ\s]{3,20})\s*$/i,
     ];
     
-    for (const pattern of medidasPatterns) {
-        const match = originalText.match(pattern);
+    const ciudadesConocidas = [
+        'rosario', 'cordoba', 'córdoba', 'mendoza', 'tucuman', 'tucumán', 'salta',
+        'buenos aires', 'caba', 'capital', 'la plata', 'mar del plata', 'santa fe',
+        'neuquen', 'neuquén', 'posadas', 'resistencia', 'corrientes', 'parana', 'paraná',
+        'san juan', 'san luis', 'rio cuarto', 'río cuarto', 'funes', 'roldan', 'roldán',
+        'perez', 'pérez', 'fisherton', 'granadero baigorria', 'villa gobernador galvez',
+    ];
+    
+    for (const pattern of localidadPatterns) {
+        const match = lowerText.match(pattern);
         if (match) {
-            if (/redonda|circular|circulo|diametro|diámetro/i.test(match[0])) {
-                const diam = match[2] || match[1];
-                order.medidas = `${diam}cm redonda`;
-            } else if (match[2]) {
-                order.medidas = `${match[1]}x${match[2]}cm`;
+            const posibleLocalidad = match[1].trim();
+            // Verificar si es una ciudad conocida
+            if (ciudadesConocidas.some(c => posibleLocalidad.includes(c) || c.includes(posibleLocalidad))) {
+                order.localidad = posibleLocalidad.charAt(0).toUpperCase() + posibleLocalidad.slice(1);
+                break;
             }
-            break;
         }
     }
     
-    // =====================================================
-    // EXTRAER COLOR (muy flexible)
-    // =====================================================
-    const colores = {
-        'beige': 'Beige', 'beis': 'Beige', 'crema': 'Beige',
-        'suela': 'Suela', 'marron claro': 'Suela',
-        'negro': 'Negro', 'negra': 'Negro',
-        'blanco': 'Blanco', 'blanca': 'Blanco',
-        'natural': 'Natural',
-        'marron': 'Marrón', 'marrón': 'Marrón', 'cafe': 'Marrón',
-        'transparente': 'Transparente', 'cristal': 'Transparente',
-        'rojo': 'Rojo', 'roja': 'Rojo',
-        'azul': 'Azul',
-        'rosa': 'Rosa', 'rosado': 'Rosa',
-        'verde': 'Verde',
-        'dorado': 'Dorado', 'oro': 'Dorado',
-        'plateado': 'Plateado', 'plata': 'Plateado',
+    // MATERIAL
+    if (/acr[ií]lico/i.test(lowerText)) order.material = 'acrilico';
+    else if (/cuero\s+genuino|cuero\s+real/i.test(lowerText)) order.material = 'cuero';
+    else if (/mdf|madera/i.test(lowerText)) order.material = 'mdf';
+    // Default: ecocuero
+    
+    // COLOR
+    const coloresMap = {
+        'beige': 'Beige', 'negro': 'Negro', 'blanco': 'Blanco', 
+        'suela': 'Suela', 'natural': 'Natural', 'marron': 'Marrón',
+        'transparente': 'Transparente', 'rojo': 'Rojo', 'azul': 'Azul',
     };
-    
-    for (const [alias, color] of Object.entries(colores)) {
-        if (lowerText.includes(alias)) {
-            order.color = color;
+    for (const [key, val] of Object.entries(coloresMap)) {
+        if (lowerText.includes(key)) {
+            order.color = val;
             break;
         }
     }
     
+    // TELÉFONO
+    const telMatch = originalText.match(/(?:tel|cel|whatsapp|wsp)?[:\s]*(\d{10,12})/i);
+    if (telMatch) order.clienteTelefono = telMatch[1];
+    
     // =====================================================
-    // EXTRAER LOGO/MARCA (muy flexible)
+    // PASO 2: Extraer NOMBRE del cliente
+    // Lo que queda después de quitar datos conocidos
     // =====================================================
-    const logoPatterns = [
-        /(?:logo|diseño|marca|imagen)\s*(?:de|del|:)?\s*["']?([^"',\n]{2,25})["']?(?=[,.\s]|$)/i,
-        /con\s+(?:el\s+)?(?:logo|diseño)\s+(?:de\s+)?["']?([^"',\n]{2,25})["']?/i,
-        /["']([^"']{2,20})["']\s*(?:logo|marca|diseño)/i,  // "Moor" logo
+    
+    // Palabras a ignorar para encontrar el nombre
+    const palabrasIgnorar = [
+        'pedido', 'confirmado', 'confirmar', 'nuevo', 'crear',
+        'etiquetas', 'etiqueta', 'llaveros', 'llavero', 'unidades', 'unid',
+        'eco', 'cuero', 'ecocuero', 'acrilico', 'acrílico', 'mdf',
+        'beige', 'negro', 'blanco', 'suela', 'natural', 'marron',
+        'de', 'en', 'para', 'con', 'a', 'el', 'la', 'los', 'las',
     ];
     
-    for (const pattern of logoPatterns) {
-        const match = originalText.match(pattern);
-        if (match && match[1]) {
-            const logoName = match[1].trim();
-            // Evitar capturar datos que no son logos
-            const excluir = ['etiqueta', 'llavero', 'pedido', 'eco', 'cuero', 'beige', 'negro'];
-            if (!excluir.some(e => logoName.toLowerCase().includes(e))) {
-                order.logo = logoName;
+    // Separar por comas y buscar segmentos que parezcan nombres
+    const segmentos = originalText.split(/[,;]+/).map(s => s.trim()).filter(s => s.length > 0);
+    
+    for (const seg of segmentos) {
+        const segLower = seg.toLowerCase();
+        
+        // Ignorar si es número, medida, localidad conocida o palabra clave
+        if (/^\d+/.test(seg)) continue;
+        if (/\d+\s*[xX×]\s*\d+/.test(seg)) continue;
+        if (ciudadesConocidas.some(c => segLower === c || segLower === `de ${c}` || segLower === `en ${c}`)) continue;
+        if (palabrasIgnorar.some(p => segLower === p)) continue;
+        if (/^(?:de|en)\s+/i.test(seg)) continue;
+        
+        // Limpiar palabras clave del inicio
+        let nombreLimpio = seg.replace(/^(?:pedido|confirmado|confirmar|nuevo|crear|cliente|para)\s*/i, '').trim();
+        
+        // Verificar que parece un nombre (tiene letras, no es solo números)
+        if (nombreLimpio.length >= 3 && /^[a-záéíóúñ\s]+$/i.test(nombreLimpio)) {
+            // No debe ser una palabra ignorada
+            if (!palabrasIgnorar.includes(nombreLimpio.toLowerCase())) {
+                order.clienteNombre = nombreLimpio;
                 break;
             }
         }
     }
     
     // =====================================================
-    // EXTRAER PRECIO (muy flexible)
+    // PASO 3: Calcular precio si tenemos cantidad
     // =====================================================
-    const precioPatterns = [
-        /(?:total|precio|valor|costo)[:\s]*\$?\s*([\d.,]+)/i,
-        /\$\s*([\d]{3,}(?:[.,]\d{2})?)/,  // $15000 o $15.000
-        /([\d]{4,}(?:[.,]\d{2})?)\s*(?:pesos|\$|ars)/i,
-    ];
-    
-    for (const pattern of precioPatterns) {
-        const match = originalText.match(pattern);
-        if (match) {
-            let precio = match[1].replace(/\./g, '').replace(',', '.');
-            order.total = parseFloat(precio);
-            break;
-        }
-    }
-    
-    // Si no hay precio, calcular automáticamente
-    if (!order.total && order.cantidad) {
+    if (order.cantidad) {
         const precioCalculado = calcularPrecioAutomatico(order);
         if (precioCalculado) {
             order.total = precioCalculado;
             order.precioCalculado = true;
-        }
-    }
-    
-    // =====================================================
-    // EXTRAER LOCALIDAD Y PROVINCIA (muy flexible)
-    // =====================================================
-    
-    // Lista de localidades comunes argentinas para validar
-    const localidadesComunes = [
-        'rosario', 'cordoba', 'córdoba', 'mendoza', 'tucuman', 'tucumán', 'salta',
-        'mar del plata', 'san miguel', 'quilmes', 'moron', 'morón', 'lanus', 'lanús',
-        'la plata', 'bahia blanca', 'bahía blanca', 'san isidro', 'tigre', 'pilar',
-        'neuquen', 'neuquén', 'posadas', 'resistencia', 'corrientes', 'parana', 'paraná',
-        'san juan', 'san luis', 'rio cuarto', 'río cuarto', 'villa maria', 'villa maría',
-        'capital', 'capital federal', 'caba', 'centro', 'microcentro', 'palermo', 'belgrano',
-        'caballito', 'flores', 'once', 'congreso', 'recoleta', 'san telmo', 'la boca',
-        'ushuaia', 'rio gallegos', 'río gallegos', 'rawson', 'viedma', 'santa rosa',
-        'formosa', 'san fernando', 'san salvador', 'catamarca', 'la rioja',
-    ];
-    
-    const ubicacionPatterns = [
-        // "envío a Rosario, Santa Fe" (con palabra clave explícita)
-        /(?:env[ií][oa]r?|despacho?|destino|entrega)\s+(?:a\s+)?["']?([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,25})["']?(?:,\s*|\s*[-–]\s*)["']?([A-ZÁÉÍÓÚÑa-záéíóúñ\s]{3,20})["']?(?:\s|$|,)/i,
-        // "localidad: Rosario" (explícito)
-        /(?:localidad|ciudad|ubicacion|ubicación)[:\s]+["']?([^,\n]{3,25})["']?/i,
-        // "provincia: Santa Fe" (explícito)
-        /(?:provincia|prov)[:\s]+["']?([^,\n]{3,20})["']?/i,
-    ];
-    
-    for (const pattern of ubicacionPatterns) {
-        const match = originalText.match(pattern);
-        if (match) {
-            if (/provincia|prov/.test(pattern.source)) {
-                order.provincia = match[1].trim();
-            } else if (match[2]) {
-                const posibleLocalidad = match[1].trim();
-                const posibleProv = match[2].trim();
-                
-                // Verificar que no estamos capturando el nombre del cliente
-                if (order.clienteNombre && posibleLocalidad.toLowerCase() === order.clienteNombre.toLowerCase()) {
-                    // Solo capturar provincia si es válida
-                    const provEncontrada = provinciasArg.find(p => 
-                        posibleProv.toLowerCase().includes(p.toLowerCase()) ||
-                        p.toLowerCase().includes(posibleProv.toLowerCase())
-                    );
-                    if (provEncontrada) {
-                        order.provincia = provEncontrada;
-                    }
-                } else {
-                    order.localidad = posibleLocalidad;
-                    const provEncontrada = provinciasArg.find(p => 
-                        posibleProv.toLowerCase().includes(p.toLowerCase()) ||
-                        p.toLowerCase().includes(posibleProv.toLowerCase())
-                    );
-                    order.provincia = provEncontrada || posibleProv;
-                }
-            } else {
-                const posibleLocalidad = match[1].trim();
-                if (!order.clienteNombre || posibleLocalidad.toLowerCase() !== order.clienteNombre.toLowerCase()) {
-                    order.localidad = posibleLocalidad;
-                }
-            }
-            break;
-        }
-    }
-    
-    // NUEVO: Buscar patrón "Localidad, Provincia" donde Provincia es conocida
-    if (!order.localidad && !order.provincia) {
-        // Buscar todas las provincias mencionadas en el texto
-        for (const provincia of provinciasArg) {
-            const provRegex = new RegExp(`([A-ZÁÉÍÓÚÑa-záéíóúñ\\s]{3,25})\\s*[,\\-–]\\s*(${provincia.replace(/\s+/g, '\\s*')})(?:\\s|$|,|\\.)`, 'i');
-            const match = originalText.match(provRegex);
-            if (match) {
-                const posibleLocalidad = match[1].trim();
-                // Verificar que no sea el nombre del cliente
-                if (order.clienteNombre && posibleLocalidad.toLowerCase() === order.clienteNombre.toLowerCase()) {
-                    order.provincia = provincia;
-                } else {
-                    // Verificar que la localidad parece válida (no es una palabra clave)
-                    const palabrasNoLocalidad = ['cliente', 'para', 'pedido', 'etiquetas', 'llaveros', 'eco', 'cuero', 'beige', 'negro'];
-                    if (!palabrasNoLocalidad.some(p => posibleLocalidad.toLowerCase() === p)) {
-                        order.localidad = posibleLocalidad;
-                        order.provincia = provincia;
-                    } else {
-                        order.provincia = provincia;
-                    }
-                }
-                break;
-            }
-        }
-    }
-    
-    // Fallback: buscar solo provincia mencionada (sin localidad)
-    if (!order.provincia) {
-        for (const provincia of provinciasArg) {
-            const regex = new RegExp(`\\b${provincia.replace(/\s+/g, '\\s*')}\\b`, 'i');
-            if (regex.test(originalText)) {
-                // Verificar que no sea parte del nombre del cliente
-                if (!order.clienteNombre || !order.clienteNombre.toLowerCase().includes(provincia.toLowerCase())) {
-                    order.provincia = provincia;
-                    break;
-                }
-            }
-        }
-    }
-    
-    // =====================================================
-    // EXTRAER NOTAS
-    // =====================================================
-    const notasPatterns = [
-        /(?:nota|observacion|obs|aclaracion|comentario)[:\s]+(.+?)(?:$)/i,
-        /(?:importante|atencion|atención)[:\s]+(.+?)(?:$)/i,
-    ];
-    
-    for (const pattern of notasPatterns) {
-        const match = originalText.match(pattern);
-        if (match) {
-            order.notas = match[1].trim();
-            break;
         }
     }
     

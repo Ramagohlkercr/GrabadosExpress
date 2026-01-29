@@ -1,8 +1,19 @@
 {
     "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
+        { "source": "/api/health", "destination": "/api/health" },
+        { "source": "/api/clientes", "destination": "/api/clientes" },
+        { "source": "/api/productos", "destination": "/api/productos" },
+        { "source": "/api/insumos", "destination": "/api/insumos" },
+        { "source": "/api/pedidos", "destination": "/api/pedidos" },
+        { "source": "/api/configuracion", "destination": "/api/configuracion" },
+        { "source": "/api/estadisticas", "destination": "/api/estadisticas" },
+        { "source": "/api/cotizaciones", "destination": "/api/cotizaciones" },
+        { "source": "/((?!api/).*)", "destination": "/index.html" }
+    ],
+    "functions": {
+        "api/**/*.js": {
+            "memory": 256,
+            "maxDuration": 10
         }
-    ]
+    }
 }

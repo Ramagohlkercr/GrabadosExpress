@@ -72,18 +72,30 @@ export function generateId(prefix = 'id') {
 export function getData() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
+        console.log('[Storage] getData - raw stored:', stored ? `${stored.length} chars` : 'null');
+        
         if (stored) {
             const data = JSON.parse(stored);
-            // Merge with defaults to ensure all keys exist
+            console.log('[Storage] getData - parsed pedidos:', data.pedidos?.length || 0);
+            
+            // Defensive merge: preserve arrays from stored data
             return {
                 ...defaultData,
                 ...data,
+                // Explicitly preserve these arrays if they exist
+                clientes: data.clientes || defaultData.clientes,
+                productos: data.productos || defaultData.productos,
+                insumos: data.insumos || defaultData.insumos,
+                pedidos: data.pedidos || defaultData.pedidos,
+                cotizaciones: data.cotizaciones || defaultData.cotizaciones,
+                envios: data.envios || defaultData.envios,
                 configuracion: {
                     ...defaultData.configuracion,
-                    ...data.configuracion,
+                    ...(data.configuracion || {}),
                 },
             };
         }
+        console.log('[Storage] getData - no stored data, using defaults');
         return defaultData;
     } catch (error) {
         console.error('Error reading data:', error);
@@ -94,10 +106,13 @@ export function getData() {
 // Save all data to storage
 export function saveData(data) {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        const jsonData = JSON.stringify(data);
+        console.log('[Storage] saveData - saving', jsonData.length, 'chars, pedidos:', data.pedidos?.length || 0);
+        localStorage.setItem(STORAGE_KEY, jsonData);
+        console.log('[Storage] saveData - SUCCESS');
         return true;
     } catch (error) {
-        console.error('Error saving data:', error);
+        console.error('[Storage] Error saving data:', error);
         return false;
     }
 }
@@ -263,21 +278,33 @@ export function getPedidoById(id) {
 
 export function savePedido(pedido) {
     const data = getData();
+    console.log('[Storage] savePedido - Pedidos antes:', data.pedidos.length, data.pedidos.map(p => p.id));
+    
     const index = data.pedidos.findIndex(p => p.id === pedido.id);
 
     if (index >= 0) {
         data.pedidos[index] = { ...data.pedidos[index], ...pedido, updatedAt: new Date().toISOString() };
+        console.log('[Storage] Actualizando pedido existente:', pedido.id);
     } else {
-        data.pedidos.push({
+        const nuevoPedido = {
             ...pedido,
             id: generateId('ped'),
             numero: data.pedidos.length + 1,
+            userId: 'admin', // Asociar al usuario admin
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-        });
+        };
+        data.pedidos.push(nuevoPedido);
+        console.log('[Storage] Nuevo pedido creado:', nuevoPedido.id, 'Total ahora:', data.pedidos.length);
     }
 
-    saveData(data);
+    const saved = saveData(data);
+    console.log('[Storage] saveData resultado:', saved, 'Pedidos guardados:', data.pedidos.length);
+    
+    // Verificar que realmente se guardó
+    const verification = getData();
+    console.log('[Storage] Verificación - Pedidos después:', verification.pedidos.length);
+    
     return data.pedidos;
 }
 
@@ -476,7 +503,14 @@ export function importData(jsonString) {
     }
 }
 
-// Initialize data if first time
-if (!localStorage.getItem(STORAGE_KEY)) {
-    saveData(defaultData);
-}
+// Initialize data ONLY if absolutely first time (no key exists at all)
+// This should NOT overwrite existing data
+(function initializeStorage() {
+    const existing = localStorage.getItem(STORAGE_KEY);
+    if (existing === null) {
+        console.log('[Storage] First time init - creating default data');
+        saveData(defaultData);
+    } else {
+        console.log('[Storage] Storage already exists, not overwriting');
+    }
+})();

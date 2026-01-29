@@ -84,16 +84,19 @@ export const create = async (req, res) => {
     try {
         const {
             clienteId, estado, items, subtotal, descuento, total,
-            notas, fechaEntrega
+            notas, fechaEntrega, localidad, provincia, costoEnvio, logoImage
         } = req.body;
+
+        // Get user_id from auth if available
+        const userId = req.user?.id || null;
 
         const numero = await generateOrderNumber();
 
         const result = await query(
             `INSERT INTO pedidos (
                 numero, cliente_id, estado, items, subtotal, descuento, total,
-                notas, fecha_entrega
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                notas, fecha_entrega, localidad, provincia, costo_envio, logo_image, user_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             RETURNING *`,
             [
                 numero,
@@ -104,7 +107,12 @@ export const create = async (req, res) => {
                 descuento || 0,
                 total || 0,
                 notas || '',
-                fechaEntrega || null
+                fechaEntrega || null,
+                localidad || null,
+                provincia || null,
+                costoEnvio || 0,
+                logoImage || null,
+                userId
             ]
         );
 
@@ -121,18 +129,21 @@ export const update = async (req, res) => {
         const { id } = req.params;
         const {
             clienteId, estado, items, subtotal, descuento, total,
-            notas, fechaEntrega
+            notas, fechaEntrega, localidad, provincia, costoEnvio, logoImage
         } = req.body;
 
         const result = await query(
             `UPDATE pedidos SET
                 cliente_id = $1, estado = $2, items = $3, subtotal = $4,
-                descuento = $5, total = $6, notas = $7, fecha_entrega = $8
-            WHERE id = $9
+                descuento = $5, total = $6, notas = $7, fecha_entrega = $8,
+                localidad = $9, provincia = $10, costo_envio = $11, logo_image = $12
+            WHERE id = $13
             RETURNING *`,
             [
                 clienteId, estado, JSON.stringify(items), subtotal,
-                descuento, total, notas, fechaEntrega, id
+                descuento, total, notas, fechaEntrega,
+                localidad || null, provincia || null, costoEnvio || 0, logoImage || null,
+                id
             ]
         );
 

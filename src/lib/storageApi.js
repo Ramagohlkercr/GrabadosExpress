@@ -13,10 +13,13 @@ import {
     estadisticasApi
 } from './api.js';
 
+// API Base URL - In Vercel, use /api (same domain). In dev, use localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 // Flag to track API availability
 let apiAvailable = null;
 const API_CHECK_KEY = 'grabados_api_available';
-const API_CHECK_TIMEOUT = 2000; // 2 seconds max for API check
+const API_CHECK_TIMEOUT = 3000; // 3 seconds max for API check
 
 // Check if API is available (with timeout)
 export async function checkApiStatus() {
@@ -24,15 +27,23 @@ export async function checkApiStatus() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), API_CHECK_TIMEOUT);
         
-        const response = await fetch('http://localhost:3001/api/health', {
+        // Use the configured API URL for health check
+        const healthUrl = API_BASE_URL.startsWith('/') 
+            ? '/api/health' 
+            : API_BASE_URL.replace('/api', '') + '/api/health';
+        console.log('[StorageAPI] Checking API at:', healthUrl);
+        
+        const response = await fetch(healthUrl, {
             signal: controller.signal
         });
         clearTimeout(timeoutId);
         
         apiAvailable = response.ok;
         sessionStorage.setItem(API_CHECK_KEY, apiAvailable ? 'true' : 'false');
+        console.log('[StorageAPI] API available:', apiAvailable);
         return apiAvailable;
-    } catch {
+    } catch (error) {
+        console.log('[StorageAPI] API not available:', error.message);
         apiAvailable = false;
         sessionStorage.setItem(API_CHECK_KEY, 'false');
         return false;
@@ -317,13 +328,18 @@ export async function updateStockAsync(id, cantidad, tipo = 'entrada') {
 
 // --- PEDIDOS (OPTIMIZADO) ---
 export async function getPedidosAsync(filters = {}) {
+    console.log('[StorageAPI] getPedidosAsync called, API available:', isApiAvailable());
+    
     // Si ya sabemos que la API no está disponible, usar localStorage directo
     if (!isApiAvailable()) {
-        return getPedidosLocal();
+        const result = getPedidosLocal();
+        console.log('[StorageAPI] getPedidosAsync returning from localStorage:', result?.length, 'pedidos');
+        return result;
     }
     
     try {
         const data = await pedidosApi.getAll(filters);
+        console.log('[StorageAPI] getPedidosAsync returning from API:', data?.length, 'pedidos');
         return data.map(toCamelCase);
     } catch (error) {
         console.error('API Error:', error);
@@ -350,10 +366,15 @@ export async function getPedidoByIdAsync(id) {
 }
 
 export async function savePedidoAsync(pedido) {
+    console.log('[StorageAPI] savePedidoAsync called, API available:', isApiAvailable());
+    
     // Fast path: use localStorage directly if API not available
     if (!isApiAvailable()) {
+        console.log('[StorageAPI] Using localStorage fallback');
         const { savePedido } = await import('./storage.js');
-        return savePedido(pedido);
+        const result = savePedido(pedido);
+        console.log('[StorageAPI] localStorage save result:', result?.length, 'pedidos');
+        return result;
     }
 
     const payload = {
@@ -365,16 +386,23 @@ export async function savePedidoAsync(pedido) {
         total: pedido.total,
         notas: pedido.notas,
         fechaEntrega: pedido.fechaEntrega || pedido.fechaEntregaEstimada,
+        // New fields for shipping and location
+        localidad: pedido.localidad || null,
+        provincia: pedido.provincia || null,
+        costoEnvio: pedido.costoEnvio || 0,
+        logoImage: pedido.logoImage || null,
     };
 
     try {
         if (pedido.id) {
+            console.log('[StorageAPI] Updating pedido via API:', pedido.id);
             return toCamelCase(await pedidosApi.update(pedido.id, payload));
         } else {
+            console.log('[StorageAPI] Creating new pedido via API');
             return toCamelCase(await pedidosApi.create(payload));
         }
     } catch (error) {
-        console.error('API Error, using localStorage fallback:', error);
+        console.error('[StorageAPI] API Error, using localStorage fallback:', error);
         apiAvailable = false;
         const { savePedido } = await import('./storage.js');
         return savePedido(pedido);
@@ -550,11 +578,31 @@ const defaultData = {
 function getLocalData() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
+        console.log('[StorageAPI] getLocalData - stored:', stored ? `${stored.length} chars` : 'null');
         if (stored) {
-            return { ...defaultData, ...JSON.parse(stored) };
+            const parsed = JSON.parse(stored);
+            console.log('[StorageAPI] getLocalData - pedidos:', parsed.pedidos?.length || 0);
+            
+            // Defensive merge: preserve arrays from parsed data, don't overwrite with defaults
+            return {
+                ...defaultData,
+                ...parsed,
+                // Explicitly preserve these arrays if they exist in parsed
+                clientes: parsed.clientes || defaultData.clientes,
+                productos: parsed.productos || defaultData.productos,
+                insumos: parsed.insumos || defaultData.insumos,
+                pedidos: parsed.pedidos || defaultData.pedidos,
+                cotizaciones: parsed.cotizaciones || defaultData.cotizaciones,
+                configuracion: {
+                    ...defaultData.configuracion,
+                    ...(parsed.configuracion || {}),
+                },
+            };
         }
+        console.log('[StorageAPI] getLocalData - using defaults');
         return defaultData;
-    } catch {
+    } catch (e) {
+        console.error('[StorageAPI] getLocalData error:', e);
         return defaultData;
     }
 }
@@ -572,7 +620,9 @@ export function getInsumosLocal() {
 }
 
 export function getPedidosLocal() {
-    return getLocalData().pedidos;
+    const data = getLocalData();
+    console.log('[StorageAPI] getPedidosLocal:', data.pedidos?.length || 0, 'pedidos');
+    return data.pedidos;
 }
 
 export function getCotizacionesLocal() {

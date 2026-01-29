@@ -10,7 +10,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function createDatabase() {
-    // Connect without database to create it if not exists
+    // Skip database creation if using DATABASE_URL (Neon/cloud PostgreSQL)
+    // The database already exists in cloud providers
+    if (process.env.DATABASE_URL) {
+        console.log('📦 Using cloud database (DATABASE_URL), skipping database creation');
+        return;
+    }
+
+    // Connect without database to create it if not exists (local PostgreSQL only)
     const { Pool } = await import('pg');
     const tempPool = new Pool({
         host: process.env.DB_HOST || 'localhost',

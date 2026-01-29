@@ -5,16 +5,31 @@ dotenv.config();
 
 const { Pool } = pg;
 
-const pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME || 'grabados_express',
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-});
+// Check if using Neon (connection string) or local PostgreSQL
+const isNeon = process.env.DATABASE_URL?.includes('neon.tech');
+
+const poolConfig = process.env.DATABASE_URL
+    ? {
+        // Neon or other cloud PostgreSQL (uses connection string)
+        connectionString: process.env.DATABASE_URL,
+        ssl: isNeon ? { rejectUnauthorized: false } : false,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+    }
+    : {
+        // Local PostgreSQL
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT) || 5432,
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'grabados_express',
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
+    };
+
+const pool = new Pool(poolConfig);
 
 // Test connection
 pool.on('connect', () => {

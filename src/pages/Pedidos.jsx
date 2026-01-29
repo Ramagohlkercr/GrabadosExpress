@@ -127,12 +127,14 @@ export default function Pedidos() {
     async function loadData() {
         try {
             setLoading(true);
+            console.log('[Pedidos] loadData() starting...');
             const [pedidosData, clientesData, productosData, configData] = await Promise.all([
                 getPedidosAsync(),
                 getClientesAsync(),
                 getProductosAsync(),
                 getConfiguracionAsync()
             ]);
+            console.log('[Pedidos] loadData() received:', pedidosData?.length, 'pedidos');
             setPedidos(pedidosData);
             setClientes(clientesData);
             setProductos(productosData.filter(p => p.activo));
