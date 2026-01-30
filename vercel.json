@@ -1,6 +1,7 @@
 {
     "rewrites": [
         { "source": "/api/health", "destination": "/api/health" },
+        { "source": "/api/auth", "destination": "/api/auth" },
         { "source": "/api/clientes", "destination": "/api/clientes" },
         { "source": "/api/productos", "destination": "/api/productos" },
         { "source": "/api/insumos", "destination": "/api/insumos" },

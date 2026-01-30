@@ -9,6 +9,34 @@ async function generateOrderNumber() {
     return `GE-${String(num).padStart(4, '0')}`;
 }
 
+// Map database row to frontend format
+function mapPedido(row) {
+    return {
+        id: row.id,
+        numero: row.numero,
+        clienteId: row.cliente_id,
+        clienteNombre: row.cliente_nombre,
+        clienteTelefono: row.cliente_telefono,
+        clienteEmail: row.cliente_email,
+        clienteDireccion: row.cliente_direccion,
+        estado: row.estado,
+        items: row.items,
+        subtotal: parseFloat(row.subtotal || 0),
+        descuento: parseFloat(row.descuento || 0),
+        total: parseFloat(row.total || 0),
+        notas: row.notas,
+        fechaPedido: row.fecha_pedido,
+        fechaEntregaEstimada: row.fecha_entrega,
+        fechaEntregado: row.fecha_entregado,
+        localidad: row.localidad,
+        provincia: row.provincia,
+        costoEnvio: parseFloat(row.costo_envio || 0),
+        logoImage: row.logo_image,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+    };
+}
+
 export default async function handler(req, res) {
     if (handleCors(req, res)) return;
     corsHeaders(res);
@@ -30,7 +58,7 @@ export default async function handler(req, res) {
                         ORDER BY p.fecha_entrega`,
                         [start, end]
                     );
-                    return res.json(result.rows);
+                    return res.json(result.rows.map(mapPedido));
                 }
                 if (id) {
                     const result = await query(
@@ -44,7 +72,7 @@ export default async function handler(req, res) {
                     if (result.rows.length === 0) {
                         return res.status(404).json({ error: 'Pedido no encontrado' });
                     }
-                    return res.json(result.rows[0]);
+                    return res.json(mapPedido(result.rows[0]));
                 } else {
                     const { estado, clienteId } = req.query;
                     let sql = `
@@ -69,14 +97,15 @@ export default async function handler(req, res) {
                     sql += ' ORDER BY p.created_at DESC';
 
                     const result = await query(sql, params);
-                    return res.json(result.rows);
+                    return res.json(result.rows.map(mapPedido));
                 }
 
             case 'POST':
                 const { clienteId: cId, estado, items, subtotal, descuento, total,
-                        notas, fechaEntrega, localidad, provincia, costoEnvio, logoImage } = req.body;
+                        notas, fechaEntrega, fechaEntregaEstimada, localidad, provincia, costoEnvio, logoImage } = req.body;
                 
                 const numero = await generateOrderNumber();
+                const fechaEntregaFinal = fechaEntrega || fechaEntregaEstimada || null;
                 
                 const insertResult = await query(
                     `INSERT INTO pedidos (
@@ -93,28 +122,30 @@ export default async function handler(req, res) {
                         descuento || 0,
                         total || 0,
                         notas || '',
-                        fechaEntrega || null,
+                        fechaEntregaFinal,
                         localidad || null,
                         provincia || null,
                         costoEnvio || 0,
                         logoImage || null
                     ]
                 );
-                return res.status(201).json(insertResult.rows[0]);
+                return res.status(201).json(mapPedido(insertResult.rows[0]));
 
             case 'PUT':
                 if (!id) return res.status(400).json({ error: 'ID requerido' });
                 const updateData = req.body;
+                const updateFechaEntrega = updateData.fechaEntrega || updateData.fechaEntregaEstimada;
                 const updateResult = await query(
                     `UPDATE pedidos SET
                         cliente_id = $1, estado = $2, items = $3, subtotal = $4,
                         descuento = $5, total = $6, notas = $7, fecha_entrega = $8,
-                        localidad = $9, provincia = $10, costo_envio = $11, logo_image = $12
+                        localidad = $9, provincia = $10, costo_envio = $11, logo_image = $12,
+                        updated_at = NOW()
                     WHERE id = $13 RETURNING *`,
                     [
                         updateData.clienteId, updateData.estado, JSON.stringify(updateData.items),
                         updateData.subtotal, updateData.descuento, updateData.total,
-                        updateData.notas, updateData.fechaEntrega,
+                        updateData.notas, updateFechaEntrega,
                         updateData.localidad, updateData.provincia, updateData.costoEnvio,
                         updateData.logoImage, id
                     ]
@@ -122,19 +153,20 @@ export default async function handler(req, res) {
                 if (updateResult.rows.length === 0) {
                     return res.status(404).json({ error: 'Pedido no encontrado' });
                 }
-                return res.json(updateResult.rows[0]);
+                return res.json(mapPedido(updateResult.rows[0]));
 
             case 'PATCH':
                 // Update estado
                 if (!id) return res.status(400).json({ error: 'ID requerido' });
-                const { estado: nuevoEstado, fechaEntrega: fecha } = req.body;
+                const { estado: nuevoEstado, fechaEntrega: fecha, fechaEntregaEstimada: fechaEst } = req.body;
+                const patchFecha = fecha || fechaEst;
                 
                 let patchSql = 'UPDATE pedidos SET estado = $1';
                 const patchParams = [nuevoEstado];
                 
-                if (fecha) {
+                if (patchFecha) {
                     patchSql += ', fecha_entrega = $2';
-                    patchParams.push(fecha);
+                    patchParams.push(patchFecha);
                 }
                 
                 if (nuevoEstado === 'entregado') {
@@ -148,7 +180,7 @@ export default async function handler(req, res) {
                 if (patchResult.rows.length === 0) {
                     return res.status(404).json({ error: 'Pedido no encontrado' });
                 }
-                return res.json(patchResult.rows[0]);
+                return res.json(mapPedido(patchResult.rows[0]));
 
             case 'DELETE':
                 if (!id) return res.status(400).json({ error: 'ID requerido' });

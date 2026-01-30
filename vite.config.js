@@ -11,11 +11,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: true
-  },
-  // Environment variables to expose (must start with VITE_)
-  define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify(
-      process.env.VITE_API_URL || 'http://localhost:3001/api'
-    )
   }
+  // Note: VITE_API_URL defaults to '/api' in the code (AuthContext.jsx, storageApi.js)
+  // For local development with backend, create .env file with VITE_API_URL=http://localhost:3001/api
 })

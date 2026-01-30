@@ -14,7 +14,10 @@ import {
   CheckCircle,
   Play,
   Loader2,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  BarChart2,
+  Award,
+  Star
 } from 'lucide-react';
 import {
   getEstadisticasAsync,
@@ -31,7 +34,8 @@ import {
   getEntregasSemana
 } from '../lib/dateUtils';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line, Area, AreaChart
 } from 'recharts';
 
 
@@ -266,6 +270,162 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Estadísticas Avanzadas */}
+      <div className="section-header mb-md">
+        <h2 style={{ fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <BarChart2 size={20} />
+          Estadísticas Avanzadas
+        </h2>
+      </div>
+
+      <div className="grid grid-2 mb-lg">
+        {/* Ventas Mensuales */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <TrendingUp size={18} />
+              Ventas Últimos 6 Meses
+            </h3>
+            <span className="badge badge-success">
+              ${(stats.ventasAnio || 0).toLocaleString()} total año
+            </span>
+          </div>
+          <div className="card-body chart-container">
+            {stats.ventasMensuales?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={stats.ventasMensuales}>
+                  <defs>
+                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="mes" stroke="var(--text-muted)" fontSize={12} />
+                  <YAxis stroke="var(--text-muted)" fontSize={12} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                  <Tooltip
+                    formatter={(value) => [`$${value.toLocaleString()}`, 'Ventas']}
+                    contentStyle={{
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Area type="monotone" dataKey="total" stroke="#10b981" fillOpacity={1} fill="url(#colorVentas)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="empty-chart">
+                <p className="text-muted">No hay datos de ventas aún</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Productos Más Vendidos */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <Award size={18} />
+              Productos Más Vendidos
+            </h3>
+          </div>
+          <div className="card-body">
+            {stats.productosMasVendidos?.length > 0 ? (
+              <div className="ranking-list">
+                {stats.productosMasVendidos.map((item, index) => (
+                  <div key={index} className="ranking-item">
+                    <div className="ranking-position">
+                      {index === 0 ? <Star size={16} fill="#f59e0b" color="#f59e0b" /> : `#${index + 1}`}
+                    </div>
+                    <div className="ranking-info">
+                      <div className="ranking-name">{item.producto}</div>
+                      <div className="ranking-meta">{item.cantidad} vendidos</div>
+                    </div>
+                    <div className="ranking-value">${item.ventas?.toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p className="text-muted">No hay ventas registradas</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Clientes Top */}
+      <div className="grid grid-3 mb-lg">
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <div className="card-header">
+            <h3 className="card-title">
+              <Users size={18} />
+              Mejores Clientes
+            </h3>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/clientes')}>
+              Ver todos
+              <ArrowRight size={14} />
+            </button>
+          </div>
+          <div className="card-body">
+            {stats.clientesTop?.length > 0 ? (
+              <div className="clientes-top-grid">
+                {stats.clientesTop.map((cliente, index) => (
+                  <div key={cliente.id} className="cliente-top-card">
+                    <div className="cliente-top-rank">#{index + 1}</div>
+                    <div className="cliente-top-avatar">
+                      {cliente.nombre?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="cliente-top-info">
+                      <div className="cliente-top-nombre">{cliente.nombre}</div>
+                      <div className="cliente-top-stats">
+                        {cliente.pedidos} pedidos • ${cliente.totalCompras?.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p className="text-muted">No hay clientes con compras</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Resumen Rápido */}
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">
+              <DollarSign size={18} />
+              Resumen Anual
+            </h3>
+          </div>
+          <div className="card-body">
+            <div className="resumen-stats">
+              <div className="resumen-stat">
+                <div className="resumen-stat-label">Ventas del Año</div>
+                <div className="resumen-stat-value success">${(stats.ventasAnio || 0).toLocaleString()}</div>
+              </div>
+              <div className="resumen-stat">
+                <div className="resumen-stat-label">Ventas del Mes</div>
+                <div className="resumen-stat-value">${(stats.ingresosMes || 0).toLocaleString()}</div>
+              </div>
+              <div className="resumen-stat">
+                <div className="resumen-stat-label">Pedidos del Mes</div>
+                <div className="resumen-stat-value">{stats.pedidosMes || 0}</div>
+              </div>
+              <div className="resumen-stat">
+                <div className="resumen-stat-label">Ticket Promedio</div>
+                <div className="resumen-stat-value">
+                  ${stats.pedidosMes > 0 ? Math.round((stats.ingresosMes || 0) / stats.pedidosMes).toLocaleString() : 0}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-2">
         {/* Pedidos Recientes */}
@@ -622,6 +782,153 @@ export default function Dashboard() {
           
           .stat-content {
             text-align: center;
+          }
+        }
+
+        /* Estadísticas Avanzadas */
+        .section-header {
+          margin-top: 1.5rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .ranking-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .ranking-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
+        }
+
+        .ranking-position {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .ranking-info {
+          flex: 1;
+        }
+
+        .ranking-name {
+          font-weight: 500;
+          font-size: 0.9rem;
+        }
+
+        .ranking-meta {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .ranking-value {
+          font-weight: 600;
+          color: var(--success);
+        }
+
+        .clientes-top-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .cliente-top-card {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
+        }
+
+        .cliente-top-rank {
+          font-weight: 700;
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          width: 24px;
+        }
+
+        .cliente-top-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--primary), var(--accent));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: 1rem;
+        }
+
+        .cliente-top-info {
+          flex: 1;
+        }
+
+        .cliente-top-nombre {
+          font-weight: 500;
+        }
+
+        .cliente-top-stats {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .resumen-stats {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .resumen-stat {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem 0;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .resumen-stat:last-child {
+          border-bottom: none;
+        }
+
+        .resumen-stat-label {
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
+
+        .resumen-stat-value {
+          font-weight: 700;
+          font-size: 1.1rem;
+        }
+
+        .resumen-stat-value.success {
+          color: var(--success);
+        }
+
+        .grid-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+          .grid-3 {
+            grid-template-columns: 1fr !important;
+          }
+          .grid-3 .card[style*="span 2"] {
+            grid-column: span 1 !important;
           }
         }
       `}</style>

@@ -12,7 +12,8 @@ import {
     X,
     Bell,
     Sparkles,
-    Truck
+    Truck,
+    Receipt
 } from 'lucide-react';
 import { getEstadisticas } from '../../lib/storage';
 import { useEffect, useState } from 'react';
@@ -21,6 +22,7 @@ const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/pedidos', icon: ClipboardList, label: 'Pedidos', badge: true },
     { to: '/cotizador', icon: Calculator, label: 'Cotizador' },
+    { to: '/gastos', icon: Receipt, label: 'Gastos' },
     // { to: '/envios', icon: Truck, label: 'Envíos' }, // Oculto hasta tener credenciales API
     { to: '/asistente', icon: Sparkles, label: 'Asistente IA', highlight: true },
     { to: '/clientes', icon: Users, label: 'Clientes' },

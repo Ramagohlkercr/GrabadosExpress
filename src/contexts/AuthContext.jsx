@@ -23,14 +23,20 @@ export function AuthProvider({ children }) {
     }, []);
 
     async function login(email, password) {
+        const url = `${API_BASE_URL}/auth?action=login`;
+        console.log('Login attempt to:', url);
+        
         try {
-            const response = await fetch(`${API_BASE_URL}/auth?action=login`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password }),
+                credentials: 'same-origin'
             });
 
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Response data:', data);
 
             if (!response.ok) {
                 throw new Error(data.error || 'Error al iniciar sesión');
@@ -45,6 +51,15 @@ export function AuthProvider({ children }) {
             return data;
         } catch (error) {
             console.error('Login error:', error);
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            // Provide more specific error messages
+            if (error.name === 'TypeError' && error.message.includes('Load failed')) {
+                throw new Error('Error de conexión. Verificá tu internet.');
+            }
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                throw new Error('No se pudo conectar al servidor. Intentá de nuevo.');
+            }
             throw error;
         }
     }

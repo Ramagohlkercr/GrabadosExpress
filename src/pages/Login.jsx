@@ -1,13 +1,13 @@
 // Login Page
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, Eye, EyeOff, Loader2, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function Login() {
     const navigate = useNavigate();
-    const { login, isAuthenticated } = useAuth();
+    const { login, isAuthenticated, loading: authLoading } = useAuth();
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -18,8 +18,29 @@ export default function Login() {
     });
 
     // Redirect if already authenticated
+    useEffect(() => {
+        if (!authLoading && isAuthenticated) {
+            navigate('/', { replace: true });
+        }
+    }, [isAuthenticated, authLoading, navigate]);
+
+    // Show loading while checking auth
+    if (authLoading) {
+        return (
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100vh',
+                background: 'var(--bg-primary)'
+            }}>
+                <Loader2 size={32} className="spin" />
+            </div>
+        );
+    }
+
+    // Don't render login form if authenticated
     if (isAuthenticated) {
-        navigate('/');
         return null;
     }
 
@@ -30,7 +51,7 @@ export default function Login() {
         try {
             await login(formData.email, formData.password);
             toast.success('¡Bienvenido!');
-            navigate('/');
+            navigate('/', { replace: true });
         } catch (error) {
             toast.error(error.message || 'Credenciales inválidas');
         } finally {
@@ -42,11 +63,15 @@ export default function Login() {
         <div className="login-page">
             <div className="login-container">
                 <div className="login-header">
-                    <div className="login-logo">
-                        <h2 style={{ fontSize: '2rem', color: 'var(--primary)' }}>✨ GrabadosExpress</h2>
+                    <div className="login-brand">
+                        <div className="login-logo-icon">
+                            <Zap size={28} />
+                        </div>
+                        <div className="login-logo-text">
+                            Grabados<span>Express</span>
+                        </div>
                     </div>
-                    <h1>Iniciar Sesión</h1>
-                    <p className="text-muted">
+                    <p className="login-subtitle">
                         Ingresá a tu cuenta para continuar
                     </p>
                 </div>
@@ -107,11 +132,13 @@ export default function Login() {
                 </form>
 
                 <div className="login-footer">
-                    <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: '1rem' }}>
-                        <strong>Usuarios autorizados:</strong><br />
-                        📧 ramiro@grabadosexpress.com<br />
-                        📧 rocio@grabadosexpress.com
-                    </p>
+                    <div className="login-users-hint">
+                        <span className="hint-label">Usuarios autorizados</span>
+                        <div className="hint-emails">
+                            <code>ramiro@grabadosexpress.com</code>
+                            <code>rocio@grabadosexpress.com</code>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -127,11 +154,11 @@ export default function Login() {
 
                 .login-container {
                     width: 100%;
-                    max-width: 400px;
+                    max-width: 380px;
                     background: var(--bg-card);
                     border: 1px solid var(--border-color);
                     border-radius: var(--radius-lg);
-                    padding: 2rem;
+                    padding: 2.5rem 2rem;
                 }
 
                 .login-header {
@@ -139,21 +166,39 @@ export default function Login() {
                     margin-bottom: 2rem;
                 }
 
-                .login-logo {
-                    width: 80px;
-                    height: 80px;
-                    margin: 0 auto 1rem;
+                .login-brand {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.75rem;
+                    margin-bottom: 1rem;
                 }
 
-                .login-logo img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: contain;
+                .login-logo-icon {
+                    width: 48px;
+                    height: 48px;
+                    background: linear-gradient(135deg, var(--primary), var(--primary-dark, #e67e00));
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
                 }
 
-                .login-header h1 {
+                .login-logo-text {
                     font-size: 1.5rem;
-                    margin-bottom: 0.5rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                }
+
+                .login-logo-text span {
+                    color: var(--primary);
+                }
+
+                .login-subtitle {
+                    color: var(--text-muted);
+                    font-size: 0.9rem;
+                    margin: 0;
                 }
 
                 .login-form {
@@ -192,12 +237,6 @@ export default function Login() {
                     color: var(--text-primary);
                 }
 
-                .form-hint {
-                    font-size: 0.75rem;
-                    color: var(--text-muted);
-                    margin-top: 0.25rem;
-                }
-
                 .login-btn {
                     width: 100%;
                     justify-content: center;
@@ -205,22 +244,38 @@ export default function Login() {
                 }
 
                 .login-footer {
-                    text-align: center;
-                    margin-top: 1.5rem;
+                    margin-top: 2rem;
                     padding-top: 1.5rem;
                     border-top: 1px solid var(--border-color);
                 }
 
-                .link-btn {
-                    background: none;
-                    border: none;
-                    color: var(--accent);
-                    cursor: pointer;
-                    font-weight: 500;
+                .login-users-hint {
+                    text-align: center;
                 }
 
-                .link-btn:hover {
-                    text-decoration: underline;
+                .hint-label {
+                    display: block;
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    margin-bottom: 0.75rem;
+                }
+
+                .hint-emails {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .hint-emails code {
+                    display: block;
+                    background: var(--bg-secondary);
+                    padding: 0.5rem 0.75rem;
+                    border-radius: var(--radius-sm);
+                    font-size: 0.8rem;
+                    color: var(--text-secondary);
+                    font-family: inherit;
                 }
 
                 .spin {

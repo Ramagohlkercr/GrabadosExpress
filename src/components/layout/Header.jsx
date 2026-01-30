@@ -143,18 +143,29 @@ export default function Header({ onMenuClick }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 0.75rem 1.5rem;
-          background: var(--bg-secondary);
+          padding: 1rem 1.5rem;
+          background: linear-gradient(180deg, rgba(12, 12, 18, 0.95) 0%, rgba(12, 12, 18, 0.8) 100%);
+          backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--border-color);
           position: sticky;
           top: 0;
           z-index: 50;
         }
         
+        .app-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+        }
+        
         .header-left, .header-right {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
         }
         
         .mobile-only {
@@ -173,67 +184,91 @@ export default function Header({ onMenuClick }) {
         
         .notification-btn {
           position: relative;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          transition: all var(--transition-normal);
+        }
+        
+        .notification-btn:hover {
+          border-color: var(--accent);
+          box-shadow: 0 0 20px var(--accent-glow);
         }
         
         .notification-badge {
           position: absolute;
-          top: 2px;
-          right: 2px;
-          width: 18px;
-          height: 18px;
-          background: var(--danger);
+          top: -4px;
+          right: -4px;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          background: linear-gradient(135deg, var(--danger), #dc2626);
           color: white;
           font-size: 0.7rem;
-          font-weight: 600;
-          border-radius: 50%;
+          font-weight: 700;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
+          animation: pulse-notification 2s infinite;
+        }
+        
+        @keyframes pulse-notification {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
         }
         
         .notification-dropdown {
           position: absolute;
-          top: 100%;
+          top: calc(100% + 8px);
           right: 0;
-          width: 320px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-lg);
-          margin-top: 0.5rem;
+          width: 360px;
+          background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-xl), 0 0 40px rgba(0, 0, 0, 0.3);
           overflow: hidden;
+          animation: dropdown-appear 0.2s ease;
+        }
+        
+        @keyframes dropdown-appear {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         
         .notification-header {
-          padding: 1rem;
+          padding: 1.25rem;
           border-bottom: 1px solid var(--border-color);
+          background: var(--bg-tertiary);
         }
         
         .notification-header h4 {
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 0.9rem;
+          font-weight: 700;
+          letter-spacing: -0.01em;
         }
         
         .notification-list {
-          max-height: 300px;
+          max-height: 320px;
           overflow-y: auto;
         }
         
         .notification-empty {
-          padding: 2rem;
+          padding: 2.5rem 1.5rem;
           text-align: center;
           color: var(--text-muted);
-          font-size: 0.875rem;
+          font-size: 0.9rem;
         }
         
         .notification-item {
           display: flex;
           align-items: flex-start;
-          gap: 0.75rem;
-          padding: 1rem;
+          gap: 1rem;
+          padding: 1rem 1.25rem;
           border-bottom: 1px solid var(--border-color);
           cursor: pointer;
-          transition: background var(--transition-fast);
+          transition: all var(--transition-fast);
         }
         
         .notification-item:hover {
@@ -245,15 +280,24 @@ export default function Header({ onMenuClick }) {
         }
         
         .notification-item.danger {
-          background: var(--danger-bg);
+          background: linear-gradient(90deg, var(--danger-bg), transparent);
+          border-left: 3px solid var(--danger);
         }
         
         .notification-item.warning {
-          background: var(--warning-bg);
+          background: linear-gradient(90deg, var(--warning-bg), transparent);
+          border-left: 3px solid var(--warning);
         }
         
         .notification-icon {
-          font-size: 1.25rem;
+          font-size: 1.5rem;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
         }
         
         .notification-content {
@@ -262,8 +306,9 @@ export default function Header({ onMenuClick }) {
         
         .notification-title {
           font-size: 0.875rem;
-          font-weight: 500;
+          font-weight: 600;
           margin-bottom: 0.25rem;
+          color: var(--text-primary);
         }
         
         .notification-time {
@@ -279,37 +324,39 @@ export default function Header({ onMenuClick }) {
         .user-btn {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          background: var(--bg-tertiary);
+          gap: 0.75rem;
+          padding: 0.5rem 1rem 0.5rem 0.5rem;
+          background: linear-gradient(145deg, var(--bg-tertiary), var(--bg-secondary));
           border: 1px solid var(--border-color);
-          border-radius: var(--radius-md);
+          border-radius: var(--radius-lg);
           cursor: pointer;
-          transition: all var(--transition-fast);
+          transition: all var(--transition-normal);
           color: var(--text-primary);
         }
         
         .user-btn:hover {
           background: var(--bg-hover);
           border-color: var(--accent);
+          box-shadow: 0 0 20px var(--accent-glow);
         }
         
         .user-avatar {
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-          color: white;
-          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          background: var(--accent-gradient);
+          color: #000;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 600;
+          font-size: 0.8rem;
+          font-weight: 700;
+          box-shadow: 0 2px 8px var(--accent-glow);
         }
         
         .user-name {
           font-size: 0.875rem;
-          font-weight: 500;
+          font-weight: 600;
           max-width: 120px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -320,41 +367,47 @@ export default function Header({ onMenuClick }) {
           .user-name {
             display: none;
           }
+          
+          .user-btn {
+            padding: 0.5rem;
+          }
         }
         
         .user-dropdown {
           position: absolute;
-          top: 100%;
+          top: calc(100% + 8px);
           right: 0;
-          width: 260px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow-lg);
-          margin-top: 0.5rem;
+          width: 280px;
+          background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-xl), 0 0 40px rgba(0, 0, 0, 0.3);
           overflow: hidden;
           z-index: 100;
+          animation: dropdown-appear 0.2s ease;
         }
         
         .user-dropdown-header {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: var(--bg-tertiary);
+          gap: 1rem;
+          padding: 1.25rem;
+          background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-hover));
+          border-bottom: 1px solid var(--border-color);
         }
         
         .user-avatar-lg {
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-          color: white;
-          border-radius: 50%;
+          width: 52px;
+          height: 52px;
+          background: var(--accent-gradient);
+          color: #000;
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1rem;
-          font-weight: 600;
+          font-size: 1.125rem;
+          font-weight: 700;
+          box-shadow: 0 4px 15px var(--accent-glow);
         }
         
         .user-info {
@@ -363,11 +416,12 @@ export default function Header({ onMenuClick }) {
         }
         
         .user-info-name {
-          font-weight: 600;
-          font-size: 0.875rem;
+          font-weight: 700;
+          font-size: 0.95rem;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          margin-bottom: 0.125rem;
         }
         
         .user-info-email {
@@ -378,6 +432,10 @@ export default function Header({ onMenuClick }) {
           white-space: nowrap;
         }
         
+        .user-info-role {
+          margin-top: 0.5rem;
+        }
+        
         .user-dropdown-divider {
           height: 1px;
           background: var(--border-color);
@@ -386,23 +444,36 @@ export default function Header({ onMenuClick }) {
         .user-dropdown-item {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: 0.875rem;
           width: 100%;
-          padding: 0.875rem 1rem;
+          padding: 1rem 1.25rem;
           background: none;
           border: none;
           color: var(--text-primary);
           font-size: 0.875rem;
+          font-weight: 500;
           cursor: pointer;
-          transition: background var(--transition-fast);
+          transition: all var(--transition-fast);
         }
         
         .user-dropdown-item:hover {
           background: var(--bg-hover);
+          color: var(--accent);
         }
         
         .user-dropdown-item svg {
           color: var(--text-muted);
+          transition: color var(--transition-fast);
+        }
+        
+        .user-dropdown-item:hover svg {
+          color: var(--accent);
+        }
+        
+        .badge-primary {
+          background: var(--accent-glow);
+          color: var(--accent);
+          border: 1px solid var(--border-glow);
         }
       `}</style>
     </header>
