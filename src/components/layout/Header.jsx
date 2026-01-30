@@ -1,34 +1,56 @@
-import { Menu, Bell, Search, User, ChevronDown } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, Bell, Search, User, ChevronDown, Package, Box, Wallet, Clock, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getEstadisticasAsync } from '../../lib/storageApi';
-import { formatearFechaRelativa } from '../../lib/dateUtils';
+import { obtenerNotificaciones, PRIORIDAD } from '../../lib/notificaciones';
+import { useNavigate } from 'react-router-dom';
 
 export default function Header({ onMenuClick }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [stats, setStats] = useState({
-    pedidosProximosVencer: 0,
-    pedidosAtrasados: 0,
-    listaPedidosProximos: [],
-    listaPedidosAtrasados: []
+  const [notificacionesData, setNotificacionesData] = useState({
+    notificaciones: [],
+    porCategoria: { pedidos: [], stock: [], pagos: [] },
+    stats: { total: 0, criticas: 0, altas: 0 },
+    hayCriticas: false,
   });
+  const [filtroCategoria, setFiltroCategoria] = useState('todas');
+  const [loading, setLoading] = useState(true);
+  const notifRef = useRef(null);
 
   useEffect(() => {
-    loadStats();
+    loadNotificaciones();
+    // Actualizar cada 2 minutos
+    const interval = setInterval(loadNotificaciones, 120000);
+    return () => clearInterval(interval);
   }, []);
 
-  async function loadStats() {
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  async function loadNotificaciones() {
     try {
-      const data = await getEstadisticasAsync();
-      setStats(data);
+      setLoading(true);
+      const data = await obtenerNotificaciones();
+      setNotificacionesData(data);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
     }
   }
 
-  const totalAlertas = (stats.pedidosProximosVencer || 0) + (stats.pedidosAtrasados || 0);
+  const { notificaciones, porCategoria, stats, hayCriticas } = notificacionesData;
+  const totalAlertas = stats.total || 0;
 
   // Get user initials
   const userInitials = user?.nombre
@@ -40,8 +62,29 @@ export default function Header({ onMenuClick }) {
     setShowUserMenu(false);
   }
 
+  // Filtrar notificaciones por categoría
+  const notificacionesFiltradas = filtroCategoria === 'todas' 
+    ? notificaciones 
+    : porCategoria[filtroCategoria] || [];
+
+  function handleNotificationClick(notif) {
+    setShowNotifications(false);
+    if (notif.link) {
+      navigate(notif.link.split('?')[0]); // Navigate to base path
+    }
+  }
+
+  function getColorClass(prioridad) {
+    switch (prioridad) {
+      case PRIORIDAD.CRITICA: return 'danger';
+      case PRIORIDAD.ALTA: return 'warning';
+      case PRIORIDAD.MEDIA: return 'info';
+      default: return 'success';
+    }
+  }
+
   return (
-    <header className="app-header">
+    <header className={`app-header ${hayCriticas ? 'has-critical' : ''}`}>
       <div className="header-left">
         <button className="btn btn-ghost btn-icon mobile-only" onClick={onMenuClick}>
           <Menu size={24} />
@@ -50,61 +93,132 @@ export default function Header({ onMenuClick }) {
 
       <div className="header-right">
         {/* Notifications */}
-        <div className="notification-wrapper">
+        <div className="notification-wrapper" ref={notifRef}>
           <button
-            className="btn btn-ghost btn-icon notification-btn"
+            className={`btn btn-ghost btn-icon notification-btn ${hayCriticas ? 'has-critical' : ''}`}
             onClick={() => {
               setShowNotifications(!showNotifications);
               setShowUserMenu(false);
+              if (!showNotifications) loadNotificaciones(); // Refresh on open
             }}
           >
             <Bell size={20} />
             {totalAlertas > 0 && (
-              <span className="notification-badge">{totalAlertas}</span>
+              <span className={`notification-badge ${hayCriticas ? 'critical' : ''}`}>
+                {totalAlertas > 99 ? '99+' : totalAlertas}
+              </span>
             )}
           </button>
 
           {showNotifications && (
             <div className="notification-dropdown">
               <div className="notification-header">
-                <h4>Notificaciones</h4>
+                <div className="notification-header-top">
+                  <h4>
+                    <Bell size={18} />
+                    Notificaciones
+                  </h4>
+                  <button 
+                    className="notification-close"
+                    onClick={() => setShowNotifications(false)}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                
+                {/* Estadísticas rápidas */}
+                {totalAlertas > 0 && (
+                  <div className="notification-stats">
+                    {stats.criticas > 0 && (
+                      <span className="stat-badge danger">
+                        <AlertTriangle size={12} />
+                        {stats.criticas} urgente{stats.criticas > 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {stats.altas > 0 && (
+                      <span className="stat-badge warning">
+                        <Clock size={12} />
+                        {stats.altas} próximo{stats.altas > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Filtros de categoría */}
+                <div className="notification-filters">
+                  <button 
+                    className={`filter-btn ${filtroCategoria === 'todas' ? 'active' : ''}`}
+                    onClick={() => setFiltroCategoria('todas')}
+                  >
+                    Todas ({stats.total})
+                  </button>
+                  <button 
+                    className={`filter-btn ${filtroCategoria === 'pedidos' ? 'active' : ''}`}
+                    onClick={() => setFiltroCategoria('pedidos')}
+                  >
+                    <Package size={14} />
+                    Pedidos ({porCategoria.pedidos?.length || 0})
+                  </button>
+                  <button 
+                    className={`filter-btn ${filtroCategoria === 'stock' ? 'active' : ''}`}
+                    onClick={() => setFiltroCategoria('stock')}
+                  >
+                    <Box size={14} />
+                    Stock ({porCategoria.stock?.length || 0})
+                  </button>
+                  <button 
+                    className={`filter-btn ${filtroCategoria === 'pagos' ? 'active' : ''}`}
+                    onClick={() => setFiltroCategoria('pagos')}
+                  >
+                    <Wallet size={14} />
+                    Pagos ({porCategoria.pagos?.length || 0})
+                  </button>
+                </div>
               </div>
+
               <div className="notification-list">
-                {totalAlertas === 0 ? (
+                {loading ? (
+                  <div className="notification-loading">
+                    <div className="spinner-small"></div>
+                    Cargando...
+                  </div>
+                ) : notificacionesFiltradas.length === 0 ? (
                   <div className="notification-empty">
-                    No hay notificaciones pendientes
+                    <CheckCircle size={48} />
+                    <p>¡Todo en orden!</p>
+                    <span>No hay notificaciones pendientes</span>
                   </div>
                 ) : (
-                  <>
-                    {stats.listaPedidosAtrasados?.map(pedido => (
-                      <div key={pedido.id} className="notification-item danger">
-                        <div className="notification-icon">⚠️</div>
-                        <div className="notification-content">
-                          <div className="notification-title">
-                            Pedido #{pedido.numero} atrasado
-                          </div>
-                          <div className="notification-time">
-                            Vencía {formatearFechaRelativa(pedido.fechaEntregaEstimada)}
-                          </div>
-                        </div>
+                  notificacionesFiltradas.map(notif => (
+                    <div 
+                      key={notif.id} 
+                      className={`notification-item ${getColorClass(notif.prioridad)}`}
+                      onClick={() => handleNotificationClick(notif)}
+                    >
+                      <div className="notification-icon">{notif.icono}</div>
+                      <div className="notification-content">
+                        <div className="notification-title">{notif.titulo}</div>
+                        <div className="notification-time">{notif.mensaje}</div>
                       </div>
-                    ))}
-                    {stats.listaPedidosProximos?.map(pedido => (
-                      <div key={pedido.id} className="notification-item warning">
-                        <div className="notification-icon">📅</div>
-                        <div className="notification-content">
-                          <div className="notification-title">
-                            Pedido #{pedido.numero} próximo a vencer
-                          </div>
-                          <div className="notification-time">
-                            {formatearFechaRelativa(pedido.fechaEntregaEstimada)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </>
+                      <div className={`notification-priority ${notif.prioridad}`}></div>
+                    </div>
+                  ))
                 )}
               </div>
+
+              {totalAlertas > 0 && (
+                <div className="notification-footer">
+                  <button 
+                    className="btn-view-all"
+                    onClick={() => {
+                      setShowNotifications(false);
+                      navigate('/pedidos');
+                    }}
+                  >
+                    Ver todos los pedidos
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -195,6 +309,16 @@ export default function Header({ onMenuClick }) {
           box-shadow: 0 0 20px var(--accent-glow);
         }
         
+        .notification-btn.has-critical {
+          border-color: var(--danger);
+          animation: critical-pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes critical-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          50% { box-shadow: 0 0 20px 4px rgba(239, 68, 68, 0.6); }
+        }
+        
         .notification-badge {
           position: absolute;
           top: -4px;
@@ -202,14 +326,20 @@ export default function Header({ onMenuClick }) {
           min-width: 20px;
           height: 20px;
           padding: 0 6px;
-          background: linear-gradient(135deg, var(--danger), #dc2626);
-          color: white;
+          background: linear-gradient(135deg, var(--accent), #d97706);
+          color: #000;
           font-size: 0.7rem;
           font-weight: 700;
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 2px 8px var(--accent-glow);
+        }
+        
+        .notification-badge.critical {
+          background: linear-gradient(135deg, var(--danger), #dc2626);
+          color: white;
           box-shadow: 0 2px 8px rgba(239, 68, 68, 0.5);
           animation: pulse-notification 2s infinite;
         }
@@ -223,7 +353,7 @@ export default function Header({ onMenuClick }) {
           position: absolute;
           top: calc(100% + 8px);
           right: 0;
-          width: 360px;
+          width: 400px;
           background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
           border: 1px solid var(--border-light);
           border-radius: var(--radius-xl);
@@ -238,37 +368,164 @@ export default function Header({ onMenuClick }) {
         }
         
         .notification-header {
-          padding: 1.25rem;
+          padding: 1rem 1.25rem;
           border-bottom: 1px solid var(--border-color);
           background: var(--bg-tertiary);
         }
         
+        .notification-header-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+        
         .notification-header h4 {
-          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.95rem;
           font-weight: 700;
           letter-spacing: -0.01em;
         }
         
+        .notification-close {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          padding: 0.25rem;
+          border-radius: var(--radius-sm);
+          transition: all var(--transition-fast);
+        }
+        
+        .notification-close:hover {
+          color: var(--text-primary);
+          background: var(--bg-hover);
+        }
+        
+        .notification-stats {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+        }
+        
+        .stat-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.35rem 0.75rem;
+          font-size: 0.75rem;
+          font-weight: 600;
+          border-radius: var(--radius-full);
+        }
+        
+        .stat-badge.danger {
+          background: rgba(239, 68, 68, 0.15);
+          color: var(--danger);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .stat-badge.warning {
+          background: rgba(245, 158, 11, 0.15);
+          color: var(--warning);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .notification-filters {
+          display: flex;
+          gap: 0.375rem;
+          overflow-x: auto;
+          padding-bottom: 0.25rem;
+        }
+        
+        .filter-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.4rem 0.75rem;
+          font-size: 0.75rem;
+          font-weight: 500;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-full);
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+          white-space: nowrap;
+        }
+        
+        .filter-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+        
+        .filter-btn.active {
+          background: var(--accent-gradient);
+          color: #000;
+          border-color: transparent;
+          font-weight: 600;
+        }
+        
         .notification-list {
-          max-height: 320px;
+          max-height: 380px;
           overflow-y: auto;
         }
         
+        .notification-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          padding: 2rem;
+          color: var(--text-muted);
+        }
+        
+        .spinner-small {
+          width: 18px;
+          height: 18px;
+          border: 2px solid var(--border-color);
+          border-top-color: var(--accent);
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
         .notification-empty {
-          padding: 2.5rem 1.5rem;
+          padding: 3rem 1.5rem;
           text-align: center;
           color: var(--text-muted);
-          font-size: 0.9rem;
+        }
+        
+        .notification-empty svg {
+          color: var(--success);
+          margin-bottom: 1rem;
+          opacity: 0.7;
+        }
+        
+        .notification-empty p {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 0.25rem;
+        }
+        
+        .notification-empty span {
+          font-size: 0.85rem;
         }
         
         .notification-item {
           display: flex;
-          align-items: flex-start;
-          gap: 1rem;
-          padding: 1rem 1.25rem;
+          align-items: center;
+          gap: 0.875rem;
+          padding: 0.875rem 1.25rem;
           border-bottom: 1px solid var(--border-color);
           cursor: pointer;
           transition: all var(--transition-fast);
+          position: relative;
         }
         
         .notification-item:hover {
@@ -280,28 +537,89 @@ export default function Header({ onMenuClick }) {
         }
         
         .notification-item.danger {
-          background: linear-gradient(90deg, var(--danger-bg), transparent);
+          background: linear-gradient(90deg, rgba(239, 68, 68, 0.1), transparent);
           border-left: 3px solid var(--danger);
         }
         
         .notification-item.warning {
-          background: linear-gradient(90deg, var(--warning-bg), transparent);
+          background: linear-gradient(90deg, rgba(245, 158, 11, 0.1), transparent);
           border-left: 3px solid var(--warning);
         }
         
+        .notification-item.info {
+          background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent);
+          border-left: 3px solid var(--info);
+        }
+        
+        .notification-item.success {
+          background: linear-gradient(90deg, rgba(34, 197, 94, 0.08), transparent);
+          border-left: 3px solid var(--success);
+        }
+        
         .notification-icon {
-          font-size: 1.5rem;
-          width: 40px;
-          height: 40px;
+          font-size: 1.25rem;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
           background: var(--bg-tertiary);
           border-radius: var(--radius-md);
+          flex-shrink: 0;
         }
         
         .notification-content {
           flex: 1;
+          min-width: 0;
+        }
+        
+        .notification-priority {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        
+        .notification-priority.critica {
+          background: var(--danger);
+          box-shadow: 0 0 8px var(--danger);
+        }
+        
+        .notification-priority.alta {
+          background: var(--warning);
+          box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+        }
+        
+        .notification-priority.media {
+          background: var(--info);
+        }
+        
+        .notification-priority.baja {
+          background: var(--success);
+        }
+        
+        .notification-footer {
+          padding: 0.875rem 1.25rem;
+          border-top: 1px solid var(--border-color);
+          background: var(--bg-tertiary);
+        }
+        
+        .btn-view-all {
+          width: 100%;
+          padding: 0.625rem 1rem;
+          background: var(--accent-gradient);
+          color: #000;
+          font-size: 0.8rem;
+          font-weight: 600;
+          border: none;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+        
+        .btn-view-all:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px var(--accent-glow);
         }
         
         .notification-title {
@@ -379,21 +697,30 @@ export default function Header({ onMenuClick }) {
           .notification-dropdown {
             width: calc(100vw - 2rem);
             right: -0.5rem;
-            max-height: 70vh;
+            max-height: 80vh;
           }
           
           .notification-header {
-            padding: 1rem;
-          }
-          
-          .notification-item {
             padding: 0.875rem 1rem;
           }
           
+          .notification-filters {
+            gap: 0.25rem;
+          }
+          
+          .filter-btn {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.7rem;
+          }
+          
+          .notification-item {
+            padding: 0.75rem 1rem;
+          }
+          
           .notification-icon {
-            width: 36px;
-            height: 36px;
-            font-size: 1.25rem;
+            width: 32px;
+            height: 32px;
+            font-size: 1.1rem;
           }
           
           .notification-title {
@@ -402,6 +729,10 @@ export default function Header({ onMenuClick }) {
           
           .notification-time {
             font-size: 0.7rem;
+          }
+          
+          .notification-list {
+            max-height: calc(80vh - 180px);
           }
           
           .user-dropdown {
@@ -454,11 +785,65 @@ export default function Header({ onMenuClick }) {
           }
           
           .notification-badge {
-            min-width: 16px;
-            height: 16px;
-            font-size: 0.6rem;
-            top: -2px;
-            right: -2px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 0.65rem;
+            top: -3px;
+            right: -3px;
+          }
+          
+          .notification-dropdown {
+            width: 100vw;
+            right: -0.875rem;
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+            max-height: 85vh;
+          }
+          
+          .notification-header-top h4 {
+            font-size: 0.9rem;
+          }
+          
+          .notification-stats {
+            flex-wrap: wrap;
+          }
+          
+          .stat-badge {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.7rem;
+          }
+          
+          .filter-btn {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.65rem;
+          }
+          
+          .notification-list {
+            max-height: calc(85vh - 200px);
+          }
+          
+          .notification-item {
+            padding: 0.65rem 0.875rem;
+            gap: 0.65rem;
+          }
+          
+          .notification-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 1rem;
+          }
+          
+          .notification-priority {
+            width: 6px;
+            height: 6px;
+          }
+          
+          .notification-footer {
+            padding: 0.75rem 0.875rem;
+          }
+          
+          .btn-view-all {
+            padding: 0.6rem;
+            font-size: 0.75rem;
           }
         }
         
