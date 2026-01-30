@@ -687,6 +687,127 @@ export default function Insumos() {
             gap: 0.75rem !important;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .insumos-page .page-header {
+            margin-bottom: 1rem;
+          }
+          
+          .insumos-page .page-header h1 {
+            font-size: 1.2rem;
+          }
+          
+          .insumos-page .page-header h1 svg {
+            width: 22px;
+            height: 22px;
+          }
+          
+          /* Alert compact */
+          .alert {
+            font-size: 0.75rem;
+            padding: 0.625rem 0.875rem;
+            gap: 0.5rem;
+          }
+          
+          .alert svg {
+            width: 18px;
+            height: 18px;
+          }
+          
+          /* Insumo cards compact */
+          .insumo-card {
+            padding: 0.875rem;
+          }
+          
+          .insumo-header {
+            gap: 0.625rem;
+          }
+          
+          .insumo-icon {
+            font-size: 1.5rem;
+          }
+          
+          .insumo-nombre {
+            font-size: 0.9rem;
+          }
+          
+          .insumo-categoria {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+          }
+          
+          /* Stock display */
+          .stock-indicator {
+            padding: 0.5rem 0.75rem;
+          }
+          
+          .stock-number {
+            font-size: 1.15rem;
+          }
+          
+          .stock-unit {
+            font-size: 0.7rem;
+          }
+          
+          /* Meta info */
+          .insumo-meta {
+            gap: 0.375rem;
+          }
+          
+          .meta-item {
+            padding: 0.375rem 0.5rem;
+          }
+          
+          .meta-label {
+            font-size: 0.6rem;
+          }
+          
+          .meta-value {
+            font-size: 0.8rem;
+          }
+          
+          /* Actions */
+          .insumo-actions {
+            gap: 0.375rem;
+          }
+          
+          .insumo-actions .btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            min-width: auto;
+          }
+          
+          .insumo-actions .btn svg {
+            width: 14px;
+            height: 14px;
+          }
+          
+          /* Modal form */
+          .modal-form input,
+          .modal-form select {
+            font-size: 16px;
+            padding: 0.75rem;
+          }
+          
+          .stock-type-btns {
+            gap: 0.375rem;
+          }
+          
+          .stock-type-btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+          }
+          
+          .modal-actions {
+            flex-direction: column;
+          }
+          
+          .modal-actions .btn {
+            width: 100%;
+            padding: 0.875rem;
+          }
+        }
       `}</style>
         </div>
     );

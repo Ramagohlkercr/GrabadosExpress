@@ -498,6 +498,117 @@ export default function Calendario() {
             position: static;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .calendario-page .page-header {
+            margin-bottom: 0.875rem;
+          }
+          
+          .calendario-page .page-header h1 {
+            font-size: 1.2rem;
+          }
+          
+          .calendario-page .page-header h1 svg {
+            width: 22px;
+            height: 22px;
+          }
+          
+          /* Calendar card compact */
+          .calendario-card {
+            padding: 0.75rem;
+          }
+          
+          .calendar-header {
+            margin-bottom: 0.75rem;
+          }
+          
+          .calendar-header h2 {
+            font-size: 0.95rem;
+          }
+          
+          .calendar-nav .btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+          }
+          
+          .calendar-nav .btn svg {
+            width: 16px;
+            height: 16px;
+          }
+          
+          /* Calendar grid compact */
+          .weekdays-row {
+            gap: 2px;
+          }
+          
+          .weekday {
+            font-size: 0.55rem;
+            padding: 0.375rem 0;
+          }
+          
+          .calendar-grid {
+            gap: 2px;
+          }
+          
+          .calendar-day {
+            min-height: 44px;
+            border-radius: 6px;
+            padding: 0.25rem;
+          }
+          
+          .day-number {
+            font-size: 0.7rem;
+            margin-bottom: 0.125rem;
+          }
+          
+          .event-count {
+            min-width: 16px;
+            height: 16px;
+            font-size: 0.55rem;
+          }
+          
+          /* Legend compact */
+          .calendar-legend {
+            gap: 0.5rem;
+            padding: 0.625rem;
+          }
+          
+          .legend-item {
+            font-size: 0.6rem;
+          }
+          
+          .legend-dot {
+            width: 8px;
+            height: 8px;
+          }
+          
+          /* Day details modal/panel */
+          .day-details {
+            padding: 0.875rem;
+          }
+          
+          .day-details-header h3 {
+            font-size: 0.95rem;
+          }
+          
+          .day-pedido {
+            padding: 0.625rem;
+          }
+          
+          .day-pedido .pedido-numero {
+            font-size: 0.85rem;
+          }
+          
+          .day-pedido .pedido-cliente {
+            font-size: 0.8rem;
+          }
+          
+          .day-pedido .pedido-total {
+            font-size: 0.9rem;
+          }
+        }
       `}</style>
     </div>
   );

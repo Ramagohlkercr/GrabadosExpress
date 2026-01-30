@@ -729,6 +729,145 @@ export default function Cotizador() {
             font-size: 1.25rem;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .cotizador-page {
+            padding: 0;
+          }
+          
+          .cotizador-page .page-header h1 {
+            font-size: 1.2rem;
+          }
+          
+          .cotizador-page .page-header h1 svg {
+            width: 22px;
+            height: 22px;
+          }
+          
+          /* Products grid compact */
+          .productos-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+          }
+          
+          .producto-btn {
+            padding: 0.5rem;
+            border-radius: 10px;
+          }
+          
+          .producto-icon {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+          }
+          
+          .producto-nombre {
+            font-size: 0.7rem;
+            line-height: 1.2;
+          }
+          
+          .producto-precio {
+            font-size: 0.7rem;
+          }
+          
+          /* Items list compact */
+          .items-list .item-card {
+            padding: 0.75rem;
+          }
+          
+          .item-info {
+            gap: 0.25rem;
+          }
+          
+          .item-name {
+            font-size: 0.85rem;
+          }
+          
+          .item-details {
+            font-size: 0.7rem;
+          }
+          
+          .item-price {
+            font-size: 0.9rem;
+          }
+          
+          .item-controls {
+            gap: 0.5rem;
+          }
+          
+          .quantity-control {
+            gap: 0.25rem;
+          }
+          
+          .quantity-control button {
+            min-width: 28px;
+            min-height: 28px;
+          }
+          
+          .quantity-control span {
+            min-width: 24px;
+            font-size: 0.85rem;
+          }
+          
+          /* Material/Size selects */
+          .material-select,
+          .size-inputs {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+          }
+          
+          .material-select select,
+          .size-inputs input {
+            font-size: 16px;
+            padding: 0.5rem;
+          }
+          
+          .size-inputs input {
+            width: 60px;
+          }
+          
+          /* Summary card compact */
+          .summary-card {
+            padding: 0.875rem;
+          }
+          
+          .summary-row {
+            font-size: 0.85rem;
+            padding: 0.5rem 0;
+          }
+          
+          .total-row {
+            font-size: 1rem;
+          }
+          
+          .total-value {
+            font-size: 1.35rem;
+          }
+          
+          /* Summary actions */
+          .summary-actions {
+            gap: 0.5rem;
+          }
+          
+          .summary-actions .btn {
+            padding: 0.875rem;
+            font-size: 0.9rem;
+          }
+          
+          /* Empty state */
+          .empty-cotizacion {
+            padding: 2rem 1rem;
+          }
+          
+          .empty-cotizacion svg {
+            width: 48px;
+            height: 48px;
+          }
+          
+          .empty-cotizacion p {
+            font-size: 0.9rem;
+          }
+        }
       `}</style>
         </div>
     );

@@ -1016,6 +1016,179 @@ export default function Gastos() {
                         opacity: 1;
                     }
                 }
+                
+                /* iPhone Pro Max Optimized */
+                @media (max-width: 430px) {
+                    .gastos-page .page-header {
+                        gap: 0.75rem;
+                    }
+                    
+                    .gastos-page .page-header h1 {
+                        font-size: 1.2rem;
+                    }
+                    
+                    .gastos-page .page-header h1 svg {
+                        width: 22px;
+                        height: 22px;
+                    }
+                    
+                    /* Stats compact */
+                    .gastos-stats {
+                        gap: 0.625rem;
+                    }
+                    
+                    .gasto-stat-card {
+                        padding: 1rem;
+                        gap: 1rem;
+                    }
+                    
+                    .gasto-stat-icon {
+                        width: 48px;
+                        height: 48px;
+                    }
+                    
+                    .gasto-stat-icon svg {
+                        width: 22px;
+                        height: 22px;
+                    }
+                    
+                    .gasto-stat-value {
+                        font-size: 1.5rem;
+                    }
+                    
+                    .gasto-stat-label {
+                        font-size: 0.75rem;
+                    }
+                    
+                    .gasto-stat-change {
+                        font-size: 0.7rem;
+                    }
+                    
+                    /* Filters compact */
+                    .gastos-filters {
+                        padding: 0.875rem;
+                        gap: 0.625rem;
+                    }
+                    
+                    .gastos-filters .search-box input {
+                        font-size: 16px;
+                        padding: 0.65rem 0.75rem 0.65rem 2.5rem;
+                    }
+                    
+                    .gastos-filters .filter-select {
+                        font-size: 16px;
+                        padding: 0.65rem 0.75rem;
+                    }
+                    
+                    /* Gasto list items */
+                    .gasto-item {
+                        padding: 0.875rem;
+                    }
+                    
+                    .gasto-item-icon {
+                        width: 40px;
+                        height: 40px;
+                        font-size: 1.1rem;
+                    }
+                    
+                    .gasto-item-desc {
+                        font-size: 0.9rem;
+                    }
+                    
+                    .gasto-item-monto {
+                        font-size: 0.95rem;
+                    }
+                    
+                    .gasto-item-meta {
+                        gap: 0.5rem;
+                    }
+                    
+                    .gasto-item-date,
+                    .gasto-item-proveedor {
+                        font-size: 0.7rem;
+                    }
+                    
+                    .gasto-item-cat {
+                        font-size: 0.6rem;
+                        padding: 0.15rem 0.5rem;
+                    }
+                    
+                    .btn-icon-sm {
+                        width: 36px;
+                        height: 36px;
+                    }
+                    
+                    /* Sidebar compact */
+                    .summary-card {
+                        padding: 1rem;
+                    }
+                    
+                    .summary-header h3 {
+                        font-size: 0.9rem;
+                    }
+                    
+                    .pie-chart-container {
+                        height: 160px;
+                    }
+                    
+                    .legend-item {
+                        padding: 0.4rem 0.6rem;
+                    }
+                    
+                    .legend-name {
+                        font-size: 0.8rem;
+                    }
+                    
+                    .legend-value {
+                        font-size: 0.75rem;
+                    }
+                    
+                    /* Quick categories */
+                    .quick-cat-btn {
+                        padding: 0.5rem 0.75rem;
+                    }
+                    
+                    .cat-emoji {
+                        font-size: 1rem;
+                    }
+                    
+                    .cat-label {
+                        font-size: 0.8rem;
+                    }
+                    
+                    .cat-amount {
+                        font-size: 0.75rem;
+                    }
+                    
+                    /* Modal form */
+                    .modal-header h2 {
+                        font-size: 1.1rem;
+                    }
+                    
+                    .modal-form {
+                        gap: 1rem;
+                    }
+                    
+                    .form-group label {
+                        font-size: 0.8rem;
+                    }
+                    
+                    .form-group input,
+                    .form-group select,
+                    .form-group textarea {
+                        font-size: 16px;
+                        padding: 0.75rem;
+                    }
+                    
+                    .modal-actions {
+                        flex-direction: column;
+                    }
+                    
+                    .modal-actions .btn {
+                        width: 100%;
+                        padding: 0.875rem;
+                    }
+                }
             `}</style>
         </div>
     );

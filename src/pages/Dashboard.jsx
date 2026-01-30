@@ -784,6 +784,80 @@ export default function Dashboard() {
             text-align: center;
           }
         }
+        
+        /* iPhone Pro Max specific */
+        @media (max-width: 430px) {
+          .dashboard { padding: 0; }
+          
+          .grid-4 {
+            grid-template-columns: 1fr !important;
+            gap: 0.625rem;
+          }
+          
+          .stat-card {
+            flex-direction: row;
+            text-align: left;
+            gap: 1rem;
+            padding: 1rem;
+          }
+          
+          .stat-content {
+            text-align: left;
+          }
+          
+          .stat-icon {
+            width: 44px;
+            height: 44px;
+          }
+          
+          .stat-icon svg {
+            width: 20px;
+            height: 20px;
+          }
+          
+          .stat-label {
+            font-size: 0.75rem;
+          }
+          
+          .stat-value {
+            font-size: 1.35rem;
+          }
+          
+          .alert {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+          }
+          
+          .alert span {
+            flex: 1;
+            min-width: 100%;
+          }
+          
+          .chart-container {
+            height: 200px !important;
+          }
+          
+          .card-title {
+            font-size: 0.9rem;
+          }
+          
+          .pedido-item, .entrega-item {
+            padding: 0.75rem;
+          }
+          
+          .pedido-badge, .entrega-badge {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.5rem;
+          }
+          
+          .ranking-item, .cliente-top-card {
+            padding: 0.625rem;
+          }
+          
+          .ranking-name, .cliente-top-nombre {
+            font-size: 0.85rem;
+          }
+        }
 
         /* Estadísticas Avanzadas */
         .section-header {

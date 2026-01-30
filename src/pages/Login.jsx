@@ -286,6 +286,105 @@ export default function Login() {
                     from { transform: rotate(0deg); }
                     to { transform: rotate(360deg); }
                 }
+                
+                /* Mobile Responsive */
+                @media (max-width: 768px) {
+                    .login-page {
+                        padding: 1rem;
+                        align-items: flex-start;
+                        padding-top: 10vh;
+                    }
+                    
+                    .login-container {
+                        padding: 2rem 1.5rem;
+                    }
+                }
+                
+                /* iPhone Pro Max Optimized */
+                @media (max-width: 430px) {
+                    .login-page {
+                        padding: 1rem;
+                        padding-top: 15vh;
+                    }
+                    
+                    .login-container {
+                        max-width: 100%;
+                        padding: 1.75rem 1.25rem;
+                        border-radius: var(--radius-lg);
+                    }
+                    
+                    .login-header {
+                        margin-bottom: 1.5rem;
+                    }
+                    
+                    .login-brand {
+                        gap: 0.625rem;
+                    }
+                    
+                    .login-logo-icon {
+                        width: 44px;
+                        height: 44px;
+                    }
+                    
+                    .login-logo-icon svg {
+                        width: 24px;
+                        height: 24px;
+                    }
+                    
+                    .login-logo-text {
+                        font-size: 1.35rem;
+                    }
+                    
+                    .login-subtitle {
+                        font-size: 0.85rem;
+                    }
+                    
+                    .login-form {
+                        gap: 1rem;
+                    }
+                    
+                    .login-form .form-label {
+                        font-size: 0.85rem;
+                    }
+                    
+                    .login-form .form-input {
+                        font-size: 16px;
+                        padding: 0.875rem 1rem;
+                    }
+                    
+                    .password-input .form-input {
+                        padding-right: 3rem;
+                    }
+                    
+                    .password-toggle {
+                        right: 0.875rem;
+                        padding: 0.5rem;
+                    }
+                    
+                    .login-btn {
+                        padding: 1rem;
+                        font-size: 1rem;
+                    }
+                    
+                    .login-footer {
+                        margin-top: 1.5rem;
+                        padding-top: 1.25rem;
+                    }
+                    
+                    .hint-label {
+                        font-size: 0.7rem;
+                        margin-bottom: 0.625rem;
+                    }
+                    
+                    .hint-emails {
+                        gap: 0.375rem;
+                    }
+                    
+                    .hint-emails code {
+                        font-size: 0.75rem;
+                        padding: 0.5rem 0.625rem;
+                    }
+                }
             `}</style>
         </div>
     );

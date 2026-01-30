@@ -1598,6 +1598,411 @@ select {
   box-shadow: var(--shadow-lg);
 }
 
+/* ============================================
+   MOBILE RESPONSIVE - iPhone Pro Max Optimized
+   iPhone 16 Pro Max: 430px width
+   iPhone 17 Pro Max: ~430px width
+   ============================================ */
+
+/* Base mobile adjustments for all phones */
+@media (max-width: 768px) {
+  html {
+    font-size: 15px;
+  }
+
+  .main-content {
+    padding: var(--space-md);
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-lg));
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+  }
+
+  .page-header .header-content h1,
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .page-header .header-content p,
+  .page-header p {
+    font-size: 0.8rem;
+  }
+
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1rem;
+  }
+
+  /* Stats Grid mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  /* Cards */
+  .card {
+    padding: var(--space-md);
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /* Filters */
+  .filters-bar {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .search-box {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .filter-select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  /* Tables - horizontal scroll */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table, .data-table {
+    min-width: 600px;
+  }
+
+  .table th,
+  .table td,
+  .data-table th,
+  .data-table td {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.8rem;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0.5rem;
+  }
+
+  /* Sidebar mobile overlay */
+  .sidebar {
+    width: 85%;
+    max-width: 320px;
+  }
+
+  .sidebar-header {
+    padding: var(--space-lg);
+  }
+
+  .sidebar-logo-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sidebar-logo-text {
+    font-size: 1.1rem;
+  }
+
+  .nav-link {
+    padding: 0.75rem var(--space-md);
+    font-size: 0.85rem;
+  }
+
+  /* Forms */
+  .form-group label {
+    font-size: 0.8rem;
+  }
+
+  .form-input,
+  input,
+  select,
+  textarea {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  /* Badges */
+  .badge {
+    padding: 0.25rem 0.65rem;
+    font-size: 0.65rem;
+  }
+}
+
+/* iPhone Pro Max specific (430px width) */
+@media (max-width: 430px) {
+  html {
+    font-size: 14px;
+  }
+
+  .main-content {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .page-header .header-content h1,
+  .page-header h1 {
+    font-size: 1.25rem;
+    gap: var(--space-sm);
+  }
+
+  .page-header .header-content h1 svg,
+  .page-header h1 svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Stats - single column on very small */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .stat-card {
+    padding: var(--space-md);
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .stat-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  /* Cards compact */
+  .card {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+  }
+
+  .card-header {
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+  }
+
+  /* Buttons full width */
+  .btn {
+    width: 100%;
+  }
+
+  .btn-sm {
+    width: auto;
+  }
+
+  /* Modal full screen on mobile */
+  .modal {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 92vh;
+  }
+
+  .modal-header {
+    padding: var(--space-md);
+  }
+
+  .modal-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .modal-body {
+    padding: var(--space-md);
+  }
+
+  .modal-footer, .modal-actions {
+    padding: var(--space-md);
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
+
+  /* Timeline compact */
+  .timeline {
+    gap: var(--space-xs);
+  }
+
+  .timeline-dot {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .timeline-label {
+    font-size: 0.6rem;
+  }
+
+  /* Empty State */
+  .empty-state {
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .empty-state-icon,
+  .empty-state svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .empty-state-title {
+    font-size: 1rem;
+  }
+
+  /* Tables as cards on mobile */
+  .data-table {
+    min-width: auto;
+  }
+
+  /* Notifications dropdown */
+  .notification-dropdown {
+    width: calc(100vw - 2rem);
+    right: -1rem;
+  }
+
+  .user-dropdown {
+    width: calc(100vw - 2rem);
+    right: -1rem;
+  }
+}
+
+/* Small phones (iPhone SE, etc) */
+@media (max-width: 375px) {
+  html {
+    font-size: 13px;
+  }
+
+  .main-content {
+    padding: var(--space-sm);
+  }
+
+  .page-header .header-content h1,
+  .page-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .stat-card {
+    padding: var(--space-sm);
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+  }
+}
+
+/* Safe area for notch devices */
+@supports (padding: env(safe-area-inset-top)) {
+  .app-header {
+    padding-top: calc(env(safe-area-inset-top) + 0.75rem);
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .modal {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Touch improvements for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover::before,
+  .card:hover,
+  .nav-link:hover {
+    transform: none;
+  }
+
+  /* Larger touch targets */
+  .btn, button {
+    min-height: 44px;
+  }
+
+  .nav-link {
+    min-height: 48px;
+  }
+
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Remove hover effects that don't work on touch */
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  /* Better tap states */
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  .nav-link:active {
+    background: var(--bg-hover);
+  }
+}
+
+/* Landscape mode on phones */
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal {
+    max-height: 100vh;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-overlay {
+    padding: var(--space-sm);
+    align-items: center;
+  }
+
+  .sidebar {
+    position: fixed;
+    height: 100%;
+  }
+}
+
 /* Shimmer Effect for Loading */
 .shimmer {
   background: linear-gradient(

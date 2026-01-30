@@ -371,6 +371,95 @@ export default function Header({ onMenuClick }) {
           .user-btn {
             padding: 0.5rem;
           }
+          
+          .app-header {
+            padding: 0.75rem 1rem;
+          }
+          
+          .notification-dropdown {
+            width: calc(100vw - 2rem);
+            right: -0.5rem;
+            max-height: 70vh;
+          }
+          
+          .notification-header {
+            padding: 1rem;
+          }
+          
+          .notification-item {
+            padding: 0.875rem 1rem;
+          }
+          
+          .notification-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1.25rem;
+          }
+          
+          .notification-title {
+            font-size: 0.8rem;
+          }
+          
+          .notification-time {
+            font-size: 0.7rem;
+          }
+          
+          .user-dropdown {
+            width: calc(100vw - 2rem);
+            right: -0.5rem;
+          }
+          
+          .user-dropdown-header {
+            padding: 1rem;
+          }
+          
+          .user-avatar-lg {
+            width: 44px;
+            height: 44px;
+            font-size: 1rem;
+          }
+          
+          .user-info-name {
+            font-size: 0.875rem;
+          }
+          
+          .user-dropdown-item {
+            padding: 0.875rem 1rem;
+          }
+        }
+        
+        @media (max-width: 430px) {
+          .app-header {
+            padding: 0.65rem 0.875rem;
+          }
+          
+          .header-right {
+            gap: 0.5rem;
+          }
+          
+          .notification-btn,
+          .user-btn {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          
+          .user-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 0.7rem;
+          }
+          
+          .notification-badge {
+            min-width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            top: -2px;
+            right: -2px;
+          }
         }
         
         .user-dropdown {

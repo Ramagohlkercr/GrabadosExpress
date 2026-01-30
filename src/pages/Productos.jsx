@@ -559,6 +559,85 @@ export default function Productos() {
             min-height: 40px;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .productos-page .page-header {
+            margin-bottom: 1rem;
+          }
+          
+          .productos-page .page-header h1 {
+            font-size: 1.2rem;
+          }
+          
+          .productos-page .page-header h1 svg {
+            width: 22px;
+            height: 22px;
+          }
+          
+          /* Search compact */
+          .productos-page .filters-bar {
+            gap: 0.5rem;
+          }
+          
+          .productos-page .search-box input {
+            font-size: 16px;
+            padding: 0.65rem 0.75rem 0.65rem 2.5rem;
+          }
+          
+          .productos-page .form-select {
+            font-size: 16px;
+            padding: 0.65rem 0.75rem;
+          }
+          
+          /* Product cards compact */
+          .productos-page .table tr {
+            padding: 0.75rem;
+          }
+          
+          .producto-nombre {
+            font-size: 0.95rem;
+          }
+          
+          .producto-desc {
+            font-size: 0.75rem;
+          }
+          
+          .productos-page .table td {
+            font-size: 0.85rem;
+          }
+          
+          .productos-page .table td::before {
+            font-size: 0.65rem;
+          }
+          
+          .table-actions .btn {
+            min-width: 36px;
+            min-height: 36px;
+          }
+          
+          .table-actions .btn svg {
+            width: 16px;
+            height: 16px;
+          }
+          
+          /* Modal form */
+          .modal-form input,
+          .modal-form select,
+          .modal-form textarea {
+            font-size: 16px;
+            padding: 0.75rem;
+          }
+          
+          .modal-actions {
+            flex-direction: column;
+          }
+          
+          .modal-actions .btn {
+            width: 100%;
+            padding: 0.875rem;
+          }
+        }
       `}</style>
         </div>
     );

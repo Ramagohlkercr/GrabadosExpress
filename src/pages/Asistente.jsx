@@ -1829,6 +1829,130 @@ export default function Asistente() {
             padding: 0.4rem 0.5rem;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .asistente-page {
+            padding: 0;
+            height: calc(100vh - 60px);
+          }
+          
+          .asistente-page .page-header {
+            padding: 0 0.875rem;
+            margin-bottom: 0.75rem;
+          }
+          
+          .asistente-page .page-header h1 {
+            font-size: 1.15rem;
+          }
+          
+          .asistente-page .page-header h1 svg {
+            width: 20px;
+            height: 20px;
+          }
+          
+          /* Chat container */
+          .chat-container {
+            border-radius: var(--radius-md);
+            height: calc(100vh - 140px);
+          }
+          
+          /* Messages area */
+          .messages-area {
+            padding: 0.75rem;
+            gap: 0.625rem;
+          }
+          
+          .message {
+            gap: 0.5rem;
+          }
+          
+          .message-avatar {
+            width: 28px;
+            height: 28px;
+            font-size: 0.8rem;
+          }
+          
+          .message-bubble {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.9rem;
+          }
+          
+          .message-time {
+            font-size: 0.65rem;
+          }
+          
+          /* Quick actions */
+          .quick-actions {
+            padding: 0.5rem 0.75rem;
+            gap: 0.375rem;
+          }
+          
+          .quick-btn {
+            padding: 0.375rem 0.625rem;
+            font-size: 0.75rem;
+            border-radius: 14px;
+          }
+          
+          .quick-icon {
+            font-size: 1rem;
+          }
+          
+          /* Input area */
+          .chat-input-area {
+            padding: 0.5rem 0.75rem;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+          }
+          
+          .chat-input {
+            padding: 0.75rem 0.875rem;
+            font-size: 16px;
+            min-height: 44px;
+          }
+          
+          .btn-icon {
+            min-width: 44px;
+            min-height: 44px;
+          }
+          
+          .btn-icon svg {
+            width: 18px;
+            height: 18px;
+          }
+          
+          /* Welcome state */
+          .welcome-state {
+            padding: 1.5rem 1rem;
+          }
+          
+          .welcome-icon {
+            width: 56px;
+            height: 56px;
+          }
+          
+          .welcome-icon svg {
+            width: 28px;
+            height: 28px;
+          }
+          
+          .welcome-state h3 {
+            font-size: 1rem;
+          }
+          
+          .welcome-state p {
+            font-size: 0.8rem;
+          }
+          
+          /* Suggestions */
+          .suggestions {
+            gap: 0.375rem;
+          }
+          
+          .suggestion-btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+          }
+        }
       `}</style>
         </div>
     );

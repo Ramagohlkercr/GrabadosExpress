@@ -687,6 +687,104 @@ export default function Configuracion() {
             width: 100%;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .configuracion-page .page-header {
+            margin-bottom: 1rem;
+          }
+          
+          .configuracion-page .page-header h1 {
+            font-size: 1.2rem;
+          }
+          
+          .configuracion-page .page-header h1 svg {
+            width: 22px;
+            height: 22px;
+          }
+          
+          /* Config cards compact */
+          .config-card {
+            padding: 0.875rem;
+          }
+          
+          .config-title {
+            font-size: 0.95rem;
+            margin-bottom: 0.75rem;
+          }
+          
+          .config-title svg {
+            width: 18px;
+            height: 18px;
+          }
+          
+          /* Form inputs */
+          .form-group label {
+            font-size: 0.8rem;
+            margin-bottom: 0.375rem;
+          }
+          
+          .form-input,
+          input,
+          select {
+            font-size: 16px;
+            padding: 0.7rem 0.875rem;
+          }
+          
+          .form-row {
+            gap: 0.625rem !important;
+          }
+          
+          /* Add item row */
+          .add-item-row {
+            gap: 0.5rem;
+          }
+          
+          .add-item-row .form-input {
+            font-size: 16px;
+          }
+          
+          .add-item-row .btn {
+            padding: 0.65rem 0.875rem;
+            font-size: 0.8rem;
+          }
+          
+          /* Lists */
+          .config-list {
+            gap: 0.375rem;
+          }
+          
+          .config-item {
+            padding: 0.625rem;
+            font-size: 0.85rem;
+          }
+          
+          .config-item .btn-icon {
+            width: 32px;
+            height: 32px;
+          }
+          
+          /* Checkbox */
+          .form-check {
+            gap: 0.625rem;
+            font-size: 0.85rem;
+          }
+          
+          .form-check input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+          }
+          
+          /* Backup actions */
+          .backup-actions {
+            gap: 0.5rem;
+          }
+          
+          .backup-actions .btn {
+            padding: 0.875rem;
+            font-size: 0.85rem;
+          }
+        }
       `}</style>
         </div>
     );

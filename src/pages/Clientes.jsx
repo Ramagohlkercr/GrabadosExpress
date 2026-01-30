@@ -1251,6 +1251,134 @@ export default function Clientes() {
             font-size: 0.85rem;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .clientes-page .page-header {
+            margin-bottom: 1rem;
+          }
+          
+          .clientes-page .page-header h1 {
+            font-size: 1.2rem;
+          }
+          
+          .clientes-page .page-header h1 svg {
+            width: 22px;
+            height: 22px;
+          }
+          
+          /* Search/filters compact */
+          .clientes-page .filters-bar {
+            gap: 0.5rem;
+          }
+          
+          .clientes-page .search-box input {
+            font-size: 16px;
+            padding: 0.65rem 0.75rem 0.65rem 2.5rem;
+          }
+          
+          /* Cliente cards compact */
+          .cliente-card {
+            padding: 0.875rem;
+          }
+          
+          .cliente-header {
+            gap: 0.65rem;
+          }
+          
+          .cliente-avatar {
+            width: 38px;
+            height: 38px;
+            font-size: 0.85rem;
+          }
+          
+          .cliente-nombre {
+            font-size: 0.9rem;
+          }
+          
+          .cliente-email {
+            font-size: 0.75rem;
+          }
+          
+          .cliente-meta {
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+          }
+          
+          .meta-item {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+          }
+          
+          .meta-item svg {
+            width: 12px;
+            height: 12px;
+          }
+          
+          /* Actions compact */
+          .cliente-actions {
+            margin-top: 0.625rem;
+            gap: 0.375rem;
+          }
+          
+          .cliente-actions .btn {
+            padding: 0.5rem;
+            font-size: 0.7rem;
+          }
+          
+          .cliente-actions .btn svg {
+            width: 14px;
+            height: 14px;
+          }
+          
+          /* Detail modal */
+          .detail-grid {
+            gap: 0.75rem;
+          }
+          
+          .detail-item {
+            padding: 0.625rem;
+          }
+          
+          .detail-label {
+            font-size: 0.7rem;
+          }
+          
+          .detail-value {
+            font-size: 0.85rem;
+          }
+          
+          .detail-actions {
+            gap: 0.5rem;
+          }
+          
+          .detail-actions .btn {
+            padding: 0.75rem;
+            font-size: 0.8rem;
+          }
+          
+          /* Modal form */
+          .modal-form input,
+          .modal-form select,
+          .modal-form textarea {
+            font-size: 16px;
+            padding: 0.75rem;
+          }
+          
+          .forma-options {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.35rem;
+          }
+          
+          .forma-btn {
+            padding: 0.4rem;
+            font-size: 0.65rem;
+          }
+          
+          .forma-icon {
+            font-size: 1rem;
+          }
+        }
       `}</style>
         </div>
     );

@@ -2539,6 +2539,177 @@ export default function Pedidos() {
             height: 10px;
           }
         }
+        
+        /* iPhone Pro Max Optimized */
+        @media (max-width: 430px) {
+          .pedidos-page {
+            padding: 0;
+          }
+          
+          .pedidos-page .page-header {
+            padding: 0;
+            margin-bottom: 1rem;
+          }
+          
+          .pedidos-page .page-header .page-title h1 {
+            font-size: 1.2rem;
+          }
+          
+          .pedidos-page .page-header .page-title .icon {
+            width: 32px;
+            height: 32px;
+          }
+          
+          .pedidos-page .page-header .page-title .icon svg {
+            width: 18px;
+            height: 18px;
+          }
+          
+          /* Horizontal scrolling stats */
+          .pedidos-stats {
+            margin: 0 -1rem;
+            padding: 0 1rem;
+            gap: 0.5rem;
+          }
+          
+          .stat-btn {
+            padding: 0.625rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+          }
+          
+          .stat-btn .stat-count {
+            font-size: 0.85rem;
+          }
+          
+          /* Compact filters */
+          .filters-bar {
+            padding: 0;
+            gap: 0.625rem;
+          }
+          
+          .filters-bar .form-input {
+            padding: 0.75rem 0.75rem 0.75rem 2.25rem;
+            font-size: 0.9rem;
+          }
+          
+          .filters-bar .form-select {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+          }
+          
+          /* Compact pedido cards */
+          .pedido-card {
+            padding: 0.875rem;
+            border-left-width: 4px;
+          }
+          
+          .pedido-header {
+            gap: 0.5rem;
+          }
+          
+          .pedido-number h3 {
+            font-size: 0.95rem;
+          }
+          
+          .pedido-number .badge {
+            font-size: 0.6rem;
+            padding: 0.2rem 0.5rem;
+          }
+          
+          .pedido-meta {
+            gap: 0.375rem;
+          }
+          
+          .pedido-meta span {
+            font-size: 0.7rem;
+          }
+          
+          .pedido-main {
+            padding: 0.75rem 0;
+            gap: 0.625rem;
+          }
+          
+          .pedido-cliente {
+            font-size: 0.95rem;
+          }
+          
+          .pedido-items-count {
+            font-size: 0.75rem;
+          }
+          
+          .pedido-total-value {
+            font-size: 1.1rem;
+          }
+          
+          .pedido-urgencia {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+          }
+          
+          /* Quick actions as icons */
+          .pedido-actions {
+            gap: 0.5rem;
+          }
+          
+          .pedido-actions .btn {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8rem;
+          }
+          
+          .pedido-actions .btn svg {
+            width: 16px;
+            height: 16px;
+          }
+          
+          /* Modal improvements */
+          .modal-header h2 {
+            font-size: 1.1rem;
+          }
+          
+          .modal-body {
+            padding: 0.875rem;
+          }
+          
+          .detail-section {
+            padding: 0.875rem;
+          }
+          
+          .detail-title {
+            font-size: 0.85rem;
+          }
+          
+          .detail-value {
+            font-size: 0.9rem;
+          }
+          
+          /* Form improvements */
+          .form-group label {
+            font-size: 0.8rem;
+            margin-bottom: 0.375rem;
+          }
+          
+          .form-input,
+          .form-select,
+          input,
+          select {
+            font-size: 16px; /* Prevents iOS zoom on focus */
+            padding: 0.75rem;
+          }
+          
+          /* Summary section */
+          .order-summary {
+            padding: 0.875rem;
+          }
+          
+          .summary-row {
+            font-size: 0.85rem;
+          }
+          
+          .summary-total {
+            font-size: 1.25rem;
+          }
+        }
       `}</style>
         </div>
     );
