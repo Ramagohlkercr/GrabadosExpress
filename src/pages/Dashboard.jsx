@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Zap,
   TrendingUp,
+  TrendingDown,
   Calendar,
   CheckCircle,
   Play,
@@ -17,7 +18,11 @@ import {
   PieChart as PieChartIcon,
   BarChart2,
   Award,
-  Star
+  Star,
+  Wallet,
+  ArrowUpRight,
+  ArrowDownRight,
+  Receipt
 } from 'lucide-react';
 import {
   getEstadisticasAsync,
@@ -27,6 +32,7 @@ import {
   ESTADOS_LABELS,
   checkApiStatus
 } from '../lib/storageApi';
+import { gastosApi } from '../lib/api';
 import {
   formatearFecha,
   formatearFechaRelativa,
@@ -46,6 +52,17 @@ export default function Dashboard() {
   const [clientes, setClientes] = useState([]);
   const [entregasSemana, setEntregasSemana] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [finanzas, setFinanzas] = useState({
+    ingresosHoy: 0,
+    ingresosSemana: 0,
+    ingresosMes: 0,
+    egresosHoy: 0,
+    egresosSemana: 0,
+    egresosMes: 0,
+    gananciaHoy: 0,
+    gananciaSemana: 0,
+    gananciaMes: 0
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -55,14 +72,76 @@ export default function Dashboard() {
         // Check API status and load data
         await checkApiStatus();
 
-        const [estadisticas, pedidos, clientesData] = await Promise.all([
+        const [estadisticas, pedidos, clientesData, gastosData] = await Promise.all([
           getEstadisticasAsync(),
           getPedidosAsync(),
-          getClientesAsync()
+          getClientesAsync(),
+          gastosApi.getAll().catch(() => [])
         ]);
 
         setStats(estadisticas);
         setClientes(clientesData);
+
+        // Calculate finances
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfWeek = new Date(startOfDay);
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // Filter delivered pedidos for income calculation
+        const pedidosEntregados = pedidos.filter(p => 
+          p.estado === ESTADOS_PEDIDO.ENTREGADO || 
+          p.estado === ESTADOS_PEDIDO.TERMINADO ||
+          p.estado === ESTADOS_PEDIDO.EN_PRODUCCION ||
+          p.estado === ESTADOS_PEDIDO.CONFIRMADO
+        );
+
+        // Calculate ingresos by period (using createdAt or fecha_pago)
+        let ingresosHoy = 0, ingresosSemana = 0, ingresosMes = 0;
+        pedidosEntregados.forEach(p => {
+          const fecha = new Date(p.createdAt || p.created_at);
+          const total = parseFloat(p.total) || 0;
+          
+          if (fecha >= startOfMonth) {
+            ingresosMes += total;
+            if (fecha >= startOfWeek) {
+              ingresosSemana += total;
+              if (fecha >= startOfDay) {
+                ingresosHoy += total;
+              }
+            }
+          }
+        });
+
+        // Calculate egresos by period
+        let egresosHoy = 0, egresosSemana = 0, egresosMes = 0;
+        (gastosData || []).forEach(g => {
+          const fecha = new Date(g.fecha);
+          const monto = parseFloat(g.monto) || 0;
+          
+          if (fecha >= startOfMonth) {
+            egresosMes += monto;
+            if (fecha >= startOfWeek) {
+              egresosSemana += monto;
+              if (fecha >= startOfDay) {
+                egresosHoy += monto;
+              }
+            }
+          }
+        });
+
+        setFinanzas({
+          ingresosHoy,
+          ingresosSemana,
+          ingresosMes,
+          egresosHoy,
+          egresosSemana,
+          egresosMes,
+          gananciaHoy: ingresosHoy - egresosHoy,
+          gananciaSemana: ingresosSemana - egresosSemana,
+          gananciaMes: ingresosMes - egresosMes
+        });
 
         const pedidosActivos = pedidos
           .filter(p => p.estado !== ESTADOS_PEDIDO.ENTREGADO && p.estado !== ESTADOS_PEDIDO.CANCELADO)
@@ -200,6 +279,89 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Finanzas - Ingresos vs Egresos */}
+      <div className="finanzas-section mb-lg">
+        <div className="finanzas-header">
+          <h3><Wallet size={20} /> Balance Financiero</h3>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/gastos')}>
+            Ver gastos <ArrowRight size={14} />
+          </button>
+        </div>
+        <div className="finanzas-grid">
+          {/* Diario */}
+          <div className="finanza-card">
+            <div className="finanza-periodo">Hoy</div>
+            <div className="finanza-rows">
+              <div className="finanza-row ingreso">
+                <span className="finanza-label"><ArrowUpRight size={14} /> Ingresos</span>
+                <span className="finanza-value">${finanzas.ingresosHoy.toLocaleString()}</span>
+              </div>
+              <div className="finanza-row egreso">
+                <span className="finanza-label"><ArrowDownRight size={14} /> Egresos</span>
+                <span className="finanza-value">-${finanzas.egresosHoy.toLocaleString()}</span>
+              </div>
+              <div className={`finanza-row ganancia ${finanzas.gananciaHoy >= 0 ? 'positive' : 'negative'}`}>
+                <span className="finanza-label">
+                  {finanzas.gananciaHoy >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  Ganancia
+                </span>
+                <span className="finanza-value">
+                  {finanzas.gananciaHoy >= 0 ? '' : '-'}${Math.abs(finanzas.gananciaHoy).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Semanal */}
+          <div className="finanza-card">
+            <div className="finanza-periodo">Esta Semana</div>
+            <div className="finanza-rows">
+              <div className="finanza-row ingreso">
+                <span className="finanza-label"><ArrowUpRight size={14} /> Ingresos</span>
+                <span className="finanza-value">${finanzas.ingresosSemana.toLocaleString()}</span>
+              </div>
+              <div className="finanza-row egreso">
+                <span className="finanza-label"><ArrowDownRight size={14} /> Egresos</span>
+                <span className="finanza-value">-${finanzas.egresosSemana.toLocaleString()}</span>
+              </div>
+              <div className={`finanza-row ganancia ${finanzas.gananciaSemana >= 0 ? 'positive' : 'negative'}`}>
+                <span className="finanza-label">
+                  {finanzas.gananciaSemana >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  Ganancia
+                </span>
+                <span className="finanza-value">
+                  {finanzas.gananciaSemana >= 0 ? '' : '-'}${Math.abs(finanzas.gananciaSemana).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mensual */}
+          <div className="finanza-card highlight">
+            <div className="finanza-periodo">Este Mes</div>
+            <div className="finanza-rows">
+              <div className="finanza-row ingreso">
+                <span className="finanza-label"><ArrowUpRight size={14} /> Ingresos</span>
+                <span className="finanza-value">${finanzas.ingresosMes.toLocaleString()}</span>
+              </div>
+              <div className="finanza-row egreso">
+                <span className="finanza-label"><ArrowDownRight size={14} /> Egresos</span>
+                <span className="finanza-value">-${finanzas.egresosMes.toLocaleString()}</span>
+              </div>
+              <div className={`finanza-row ganancia ${finanzas.gananciaMes >= 0 ? 'positive' : 'negative'}`}>
+                <span className="finanza-label">
+                  {finanzas.gananciaMes >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  Ganancia
+                </span>
+                <span className="finanza-value large">
+                  {finanzas.gananciaMes >= 0 ? '' : '-'}${Math.abs(finanzas.gananciaMes).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Charts Section */}
@@ -573,6 +735,152 @@ export default function Dashboard() {
           flex: 1;
         }
         
+        /* Finanzas Section */
+        .finanzas-section {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
+          padding: 1.5rem;
+        }
+        
+        .finanzas-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.25rem;
+        }
+        
+        .finanzas-header h3 {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin: 0;
+        }
+        
+        .finanzas-header h3 svg {
+          color: var(--accent);
+        }
+        
+        .finanzas-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+        
+        .finanza-card {
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          padding: 1rem;
+          transition: all 0.3s ease;
+        }
+        
+        .finanza-card:hover {
+          border-color: var(--border-light);
+        }
+        
+        .finanza-card.highlight {
+          background: linear-gradient(145deg, rgba(245, 158, 11, 0.1) 0%, var(--bg-tertiary) 100%);
+          border-color: rgba(245, 158, 11, 0.3);
+        }
+        
+        .finanza-periodo {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-muted);
+          margin-bottom: 0.875rem;
+          text-align: center;
+        }
+        
+        .finanza-rows {
+          display: flex;
+          flex-direction: column;
+          gap: 0.625rem;
+        }
+        
+        .finanza-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0.5rem 0.625rem;
+          border-radius: var(--radius-md);
+          background: var(--bg-secondary);
+        }
+        
+        .finanza-row.ingreso {
+          border-left: 3px solid var(--success);
+        }
+        
+        .finanza-row.egreso {
+          border-left: 3px solid var(--danger);
+        }
+        
+        .finanza-row.ganancia {
+          border-left: 3px solid var(--accent);
+          background: linear-gradient(90deg, var(--accent-glow), transparent);
+        }
+        
+        .finanza-row.ganancia.negative {
+          border-left-color: var(--danger);
+          background: linear-gradient(90deg, var(--danger-bg), transparent);
+        }
+        
+        .finanza-label {
+          display: flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+        }
+        
+        .finanza-row.ingreso .finanza-label svg {
+          color: var(--success);
+        }
+        
+        .finanza-row.egreso .finanza-label svg {
+          color: var(--danger);
+        }
+        
+        .finanza-row.ganancia .finanza-label svg {
+          color: var(--accent);
+        }
+        
+        .finanza-row.ganancia.negative .finanza-label svg {
+          color: var(--danger);
+        }
+        
+        .finanza-value {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        
+        .finanza-row.ingreso .finanza-value {
+          color: var(--success);
+        }
+        
+        .finanza-row.egreso .finanza-value {
+          color: var(--danger);
+        }
+        
+        .finanza-row.ganancia .finanza-value {
+          color: var(--accent);
+        }
+        
+        .finanza-row.ganancia.negative .finanza-value {
+          color: var(--danger);
+        }
+        
+        .finanza-value.large {
+          font-size: 1.1rem;
+          font-weight: 700;
+        }
+        
         .pedidos-list, .entregas-list {
           display: flex;
           flex-direction: column;
@@ -712,6 +1020,44 @@ export default function Dashboard() {
             gap: 0.75rem;
           }
           
+          /* Finanzas mobile */
+          .finanzas-section {
+            padding: 1rem;
+          }
+          
+          .finanzas-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+          }
+          
+          .finanza-card {
+            padding: 0.875rem;
+          }
+          
+          .finanza-periodo {
+            margin-bottom: 0.625rem;
+          }
+          
+          .finanza-rows {
+            gap: 0.5rem;
+          }
+          
+          .finanza-row {
+            padding: 0.4rem 0.5rem;
+          }
+          
+          .finanza-label {
+            font-size: 0.75rem;
+          }
+          
+          .finanza-value {
+            font-size: 0.85rem;
+          }
+          
+          .finanza-value.large {
+            font-size: 1rem;
+          }
+          
           .stat-card {
             padding: 0.75rem;
           }
@@ -770,6 +1116,44 @@ export default function Dashboard() {
           
           .entrega-total {
             font-size: 0.85rem;
+          }
+        }
+        
+        @media (max-width: 430px) {
+          .finanzas-header {
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: flex-start;
+          }
+          
+          .finanzas-header .btn {
+            align-self: flex-end;
+          }
+          
+          .finanza-card {
+            padding: 0.75rem;
+          }
+          
+          .finanza-row {
+            padding: 0.35rem 0.4rem;
+          }
+          
+          .finanza-label {
+            font-size: 0.7rem;
+            gap: 0.25rem;
+          }
+          
+          .finanza-label svg {
+            width: 12px;
+            height: 12px;
+          }
+          
+          .finanza-value {
+            font-size: 0.8rem;
+          }
+          
+          .finanza-value.large {
+            font-size: 0.95rem;
           }
         }
         
