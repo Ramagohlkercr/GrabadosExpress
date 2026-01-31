@@ -14,7 +14,12 @@ import {
     Key,
     CheckCircle,
     XCircle,
-    Loader2
+    Loader2,
+    MessageSquare,
+    Bot,
+    Zap,
+    Clock,
+    ExternalLink
 } from 'lucide-react';
 import {
     getConfiguracionAsync,
@@ -22,6 +27,7 @@ import {
     exportData,
     importData
 } from '../lib/storageApi';
+import { whatsappConfigApi } from '../lib/whatsappApi';
 import toast from 'react-hot-toast';
 
 export default function Configuracion() {
@@ -41,6 +47,23 @@ export default function Configuracion() {
         correoArgentinoTestMode: true,
     });
 
+    // WhatsApp/IA Config
+    const [waConfig, setWaConfig] = useState({
+        metaAppId: '',
+        whatsappToken: '',
+        whatsappPhoneId: '',
+        whatsappBusinessId: '',
+        webhookVerifyToken: 'grabados_express_verify_2024',
+        openaiApiKey: '',
+        iaModelo: 'gpt-4o-mini',
+        iaActiva: true,
+        iaPromptSistema: '',
+        horarioAtencion: { inicio: '09:00', fin: '18:00', dias: [1, 2, 3, 4, 5] },
+        mensajeFueraHorario: '',
+    });
+    const [waConfigLoaded, setWaConfigLoaded] = useState(false);
+    const [savingWa, setSavingWa] = useState(false);
+
     const [nuevoMaterial, setNuevoMaterial] = useState({ nombre: '', color: '#f59e0b' });
     const [nuevaCategoria, setNuevaCategoria] = useState('');
     const [loading, setLoading] = useState(true);
@@ -53,8 +76,28 @@ export default function Configuracion() {
     async function loadData() {
         try {
             setLoading(true);
-            const savedConfig = await getConfiguracionAsync();
+            const [savedConfig, waConfigData] = await Promise.all([
+                getConfiguracionAsync(),
+                whatsappConfigApi.get().catch(() => ({}))
+            ]);
             setConfig(savedConfig);
+            if (waConfigData && Object.keys(waConfigData).length > 0) {
+                setWaConfig(prev => ({
+                    ...prev,
+                    metaAppId: waConfigData.meta_app_id || '',
+                    whatsappToken: waConfigData.whatsapp_token || '',
+                    whatsappPhoneId: waConfigData.whatsapp_phone_id || '',
+                    whatsappBusinessId: waConfigData.whatsapp_business_id || '',
+                    webhookVerifyToken: waConfigData.webhook_verify_token || 'grabados_express_verify_2024',
+                    openaiApiKey: waConfigData.openai_api_key || '',
+                    iaModelo: waConfigData.ia_modelo || 'gpt-4o-mini',
+                    iaActiva: waConfigData.ia_activa !== false,
+                    iaPromptSistema: waConfigData.ia_prompt_sistema || '',
+                    horarioAtencion: waConfigData.horario_atencion || { inicio: '09:00', fin: '18:00', dias: [1, 2, 3, 4, 5] },
+                    mensajeFueraHorario: waConfigData.mensaje_fuera_horario || '',
+                }));
+                setWaConfigLoaded(true);
+            }
         } catch (error) {
             console.error('Error loading config:', error);
             toast.error('Error al cargar configuración');
@@ -73,6 +116,19 @@ export default function Configuracion() {
             toast.error('Error al guardar configuración');
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleSaveWhatsApp() {
+        try {
+            setSavingWa(true);
+            await whatsappConfigApi.save(waConfig);
+            toast.success('Configuración WhatsApp/IA guardada');
+        } catch (error) {
+            console.error('Error saving WA config:', error);
+            toast.error('Error al guardar configuración WhatsApp');
+        } finally {
+            setSavingWa(false);
         }
     }
 
@@ -542,6 +598,308 @@ export default function Configuracion() {
                 </div>
             </div>
 
+            {/* WhatsApp Business + IA Section */}
+            <div className="section-divider">
+                <div className="divider-line"></div>
+                <div className="divider-content">
+                    <MessageSquare size={20} />
+                    <span>Integración WhatsApp Business + IA</span>
+                </div>
+                <div className="divider-line"></div>
+            </div>
+
+            <div className="config-grid wa-section">
+                {/* Meta/WhatsApp Business */}
+                <div className="card card-premium">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <MessageSquare size={18} />
+                            WhatsApp Business API
+                        </h3>
+                        <span className="badge badge-pro">PRO</span>
+                    </div>
+                    <div className="card-body">
+                        <div className="api-status mb-md">
+                            {waConfig.whatsappToken && waConfig.whatsappToken !== '***configured***' || waConfigLoaded && waConfig.whatsappToken === '***configured***' ? (
+                                <span className="status-badge status-ok">
+                                    <CheckCircle size={14} />
+                                    API Configurada
+                                </span>
+                            ) : (
+                                <span className="status-badge status-pending">
+                                    <XCircle size={14} />
+                                    Sin configurar
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Meta App ID</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={waConfig.metaAppId}
+                                onChange={(e) => setWaConfig({ ...waConfig, metaAppId: e.target.value })}
+                                placeholder="ID de tu Meta App"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">WhatsApp Access Token</label>
+                            <input
+                                type="password"
+                                className="form-input"
+                                value={waConfig.whatsappToken}
+                                onChange={(e) => setWaConfig({ ...waConfig, whatsappToken: e.target.value })}
+                                placeholder="Token de acceso permanente"
+                            />
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Phone Number ID</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={waConfig.whatsappPhoneId}
+                                    onChange={(e) => setWaConfig({ ...waConfig, whatsappPhoneId: e.target.value })}
+                                    placeholder="ID del número"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Business ID</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={waConfig.whatsappBusinessId}
+                                    onChange={(e) => setWaConfig({ ...waConfig, whatsappBusinessId: e.target.value })}
+                                    placeholder="ID de cuenta Business"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Webhook Verify Token</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={waConfig.webhookVerifyToken}
+                                onChange={(e) => setWaConfig({ ...waConfig, webhookVerifyToken: e.target.value })}
+                                placeholder="Token de verificación"
+                            />
+                            <p className="text-muted text-sm mt-sm">
+                                URL del Webhook: <code>https://grabados-express.vercel.app/api/whatsapp</code>
+                            </p>
+                        </div>
+
+                        <a 
+                            href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="help-link"
+                        >
+                            <ExternalLink size={14} />
+                            Guía de configuración de Meta
+                        </a>
+                    </div>
+                </div>
+
+                {/* OpenAI / IA Config */}
+                <div className="card card-premium">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <Bot size={18} />
+                            Asistente IA (OpenAI)
+                        </h3>
+                        <span className="badge badge-ai">IA</span>
+                    </div>
+                    <div className="card-body">
+                        <div className="api-status mb-md">
+                            {waConfig.openaiApiKey && waConfig.openaiApiKey !== '***configured***' || waConfigLoaded && waConfig.openaiApiKey === '***configured***' ? (
+                                <span className="status-badge status-ok">
+                                    <CheckCircle size={14} />
+                                    API Configurada
+                                </span>
+                            ) : (
+                                <span className="status-badge status-pending">
+                                    <XCircle size={14} />
+                                    Sin configurar
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">OpenAI API Key</label>
+                            <input
+                                type="password"
+                                className="form-input"
+                                value={waConfig.openaiApiKey}
+                                onChange={(e) => setWaConfig({ ...waConfig, openaiApiKey: e.target.value })}
+                                placeholder="sk-..."
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Modelo</label>
+                            <select
+                                className="form-input"
+                                value={waConfig.iaModelo}
+                                onChange={(e) => setWaConfig({ ...waConfig, iaModelo: e.target.value })}
+                            >
+                                <option value="gpt-4o-mini">GPT-4o Mini (Recomendado - Económico)</option>
+                                <option value="gpt-4o">GPT-4o (Más inteligente)</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Más rápido)</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.iaActiva}
+                                    onChange={(e) => setWaConfig({ ...waConfig, iaActiva: e.target.checked })}
+                                />
+                                <span>
+                                    <Zap size={14} />
+                                    IA activa (responde automáticamente)
+                                </span>
+                            </label>
+                        </div>
+
+                        <a 
+                            href="https://platform.openai.com/api-keys" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="help-link"
+                        >
+                            <ExternalLink size={14} />
+                            Obtener API Key de OpenAI
+                        </a>
+                    </div>
+                </div>
+
+                {/* Horario de Atención */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <Clock size={18} />
+                            Horario de Atención
+                        </h3>
+                    </div>
+                    <div className="card-body">
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Hora inicio</label>
+                                <input
+                                    type="time"
+                                    className="form-input"
+                                    value={waConfig.horarioAtencion?.inicio || '09:00'}
+                                    onChange={(e) => setWaConfig({ 
+                                        ...waConfig, 
+                                        horarioAtencion: { ...waConfig.horarioAtencion, inicio: e.target.value }
+                                    })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Hora fin</label>
+                                <input
+                                    type="time"
+                                    className="form-input"
+                                    value={waConfig.horarioAtencion?.fin || '18:00'}
+                                    onChange={(e) => setWaConfig({ 
+                                        ...waConfig, 
+                                        horarioAtencion: { ...waConfig.horarioAtencion, fin: e.target.value }
+                                    })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Días de atención</label>
+                            <div className="dias-grid">
+                                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((dia, i) => (
+                                    <label key={i} className={`dia-check ${waConfig.horarioAtencion?.dias?.includes(i) ? 'active' : ''}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={waConfig.horarioAtencion?.dias?.includes(i)}
+                                            onChange={(e) => {
+                                                const dias = waConfig.horarioAtencion?.dias || [];
+                                                const newDias = e.target.checked 
+                                                    ? [...dias, i]
+                                                    : dias.filter(d => d !== i);
+                                                setWaConfig({
+                                                    ...waConfig,
+                                                    horarioAtencion: { ...waConfig.horarioAtencion, dias: newDias }
+                                                });
+                                            }}
+                                        />
+                                        {dia}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Mensaje fuera de horario</label>
+                            <textarea
+                                className="form-input"
+                                rows={3}
+                                value={waConfig.mensajeFueraHorario}
+                                onChange={(e) => setWaConfig({ ...waConfig, mensajeFueraHorario: e.target.value })}
+                                placeholder="Hola! Gracias por contactarnos. En este momento estamos fuera de horario..."
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Prompt del Sistema */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <Bot size={18} />
+                            Personalidad de la IA
+                        </h3>
+                    </div>
+                    <div className="card-body">
+                        <div className="form-group">
+                            <label className="form-label">Prompt del Sistema</label>
+                            <textarea
+                                className="form-input"
+                                rows={8}
+                                value={waConfig.iaPromptSistema}
+                                onChange={(e) => setWaConfig({ ...waConfig, iaPromptSistema: e.target.value })}
+                                placeholder="Instrucciones para la IA sobre cómo responder..."
+                            />
+                            <p className="text-muted text-sm mt-sm">
+                                Personaliza cómo responde la IA. Incluye información sobre productos, precios, tiempos de entrega, etc.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Save WhatsApp Config Button */}
+            <div className="wa-save-section">
+                <button 
+                    className="btn btn-primary btn-lg"
+                    onClick={handleSaveWhatsApp}
+                    disabled={savingWa}
+                >
+                    {savingWa ? (
+                        <>
+                            <Loader2 size={18} className="spinner" />
+                            Guardando...
+                        </>
+                    ) : (
+                        <>
+                            <Save size={18} />
+                            Guardar Configuración WhatsApp/IA
+                        </>
+                    )}
+                </button>
+            </div>
+
             <style>{`
         .config-grid {
           display: grid;
@@ -649,6 +1007,155 @@ export default function Configuracion() {
           height: 18px;
           accent-color: var(--accent);
         }
+
+        /* WhatsApp Section Styles */
+        .section-divider {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin: 3rem 0 2rem;
+        }
+        
+        .divider-line {
+          flex: 1;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+        }
+        
+        .divider-content {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: var(--accent);
+          font-weight: 600;
+          font-size: 0.95rem;
+          padding: 0.5rem 1rem;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-full);
+        }
+
+        .wa-section {
+          margin-top: 0;
+        }
+        
+        .card-premium {
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          background: linear-gradient(145deg, rgba(245, 158, 11, 0.03), var(--bg-secondary));
+        }
+        
+        .card-premium::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--accent-gradient);
+          border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+        
+        .badge-pro {
+          background: var(--accent-gradient);
+          color: #000;
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 0.25rem 0.5rem;
+          border-radius: var(--radius-sm);
+        }
+        
+        .badge-ai {
+          background: linear-gradient(135deg, #8b5cf6, #a855f7);
+          color: white;
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 0.25rem 0.5rem;
+          border-radius: var(--radius-sm);
+        }
+        
+        .help-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          color: var(--accent);
+          font-size: 0.8rem;
+          text-decoration: none;
+          margin-top: 0.5rem;
+        }
+        
+        .help-link:hover {
+          text-decoration: underline;
+        }
+        
+        .dias-grid {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        
+        .dia-check {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 44px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-size: 0.75rem;
+          font-weight: 500;
+          transition: all var(--transition-fast);
+        }
+        
+        .dia-check input {
+          display: none;
+        }
+        
+        .dia-check:hover {
+          border-color: var(--accent);
+        }
+        
+        .dia-check.active {
+          background: var(--accent-gradient);
+          color: #000;
+          border-color: transparent;
+          font-weight: 600;
+        }
+        
+        .wa-save-section {
+          display: flex;
+          justify-content: center;
+          margin-top: 2rem;
+          padding-top: 2rem;
+          border-top: 1px solid var(--border-color);
+        }
+        
+        .wa-save-section .btn-lg {
+          padding: 1rem 2rem;
+          font-size: 1rem;
+        }
+        
+        .spinner {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        
+        code {
+          background: var(--bg-tertiary);
+          padding: 0.2rem 0.4rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.8rem;
+          font-family: monospace;
+        }
+        
+        textarea.form-input {
+          resize: vertical;
+          min-height: 80px;
+        }
         
         /* Mobile Responsive */
         @media (max-width: 768px) {
@@ -685,6 +1192,19 @@ export default function Configuracion() {
           
           .backup-actions .btn {
             width: 100%;
+          }
+          
+          .section-divider {
+            margin: 2rem 0 1.5rem;
+          }
+          
+          .divider-content {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.75rem;
+          }
+          
+          .dias-grid {
+            justify-content: center;
           }
         }
         
@@ -726,7 +1246,8 @@ export default function Configuracion() {
           
           .form-input,
           input,
-          select {
+          select,
+          textarea {
             font-size: 16px;
             padding: 0.7rem 0.875rem;
           }
@@ -783,6 +1304,33 @@ export default function Configuracion() {
           .backup-actions .btn {
             padding: 0.875rem;
             font-size: 0.85rem;
+          }
+          
+          /* WhatsApp section mobile */
+          .section-divider {
+            margin: 1.5rem 0 1rem;
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+          
+          .divider-line {
+            width: 60%;
+            height: 1px;
+          }
+          
+          .divider-content {
+            font-size: 0.8rem;
+          }
+          
+          .dia-check {
+            width: 40px;
+            height: 40px;
+            font-size: 0.7rem;
+          }
+          
+          .wa-save-section .btn-lg {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
           }
         }
       `}</style>

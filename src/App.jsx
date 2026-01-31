@@ -16,6 +16,7 @@ import Configuracion from './pages/Configuracion';
 import Asistente from './pages/Asistente';
 import Envios from './pages/Envios';
 import Gastos from './pages/Gastos';
+import Conversaciones from './pages/Conversaciones';
 import Login from './pages/Login';
 import { clientesApi, pedidosApi, insumosApi } from './lib/api';
 import { initOfflineDB } from './lib/offlineStorage';
@@ -82,6 +83,7 @@ export default function App() {
                 <Route path="/asistente" element={<ProtectedLayout><Asistente /></ProtectedLayout>} />
                 <Route path="/envios" element={<ProtectedLayout><Envios /></ProtectedLayout>} />
                 <Route path="/gastos" element={<ProtectedLayout><Gastos /></ProtectedLayout>} />
+                <Route path="/conversaciones" element={<ProtectedLayout><Conversaciones /></ProtectedLayout>} />
                 
                 {/* Catch all - redirect to home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
