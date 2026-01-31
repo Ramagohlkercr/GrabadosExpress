@@ -159,7 +159,7 @@ async function processIncomingMessage(message, contact, metadata) {
         );
 
         // Process with AI if enabled
-        await processWithAI(conversacionId, waId, contenido, contactName);
+        await processWithAI(conversacionId, waId, contenido, contactName, isNewConversation);
 
     } catch (error) {
         console.error('Error processing message:', error);
@@ -167,7 +167,7 @@ async function processIncomingMessage(message, contact, metadata) {
 }
 
 // Process message with AI and respond
-async function processWithAI(conversacionId, waId, mensaje, contactName) {
+async function processWithAI(conversacionId, waId, mensaje, contactName, isNewConversation = false) {
     try {
         // Get config
         const configResult = await query('SELECT * FROM whatsapp_config WHERE id = 1');
@@ -203,19 +203,15 @@ async function processWithAI(conversacionId, waId, mensaje, contactName) {
         // Build conversation for AI
         const systemPrompt = config.ia_prompt_sistema + `
 
-PRODUCTOS DISPONIBLES:
+PRODUCTOS ACTUALES EN SISTEMA:
 ${productos.map(p => `- ${p.nombre} (${p.categoria}, ${p.material}): $${p.precio_base}`).join('\n')}
 
-INFORMACIÓN IMPORTANTE:
-- Tiempo de entrega estándar: 7 días hábiles
-- Aceptamos pedidos personalizados con logo del cliente
-- Métodos de pago: Efectivo, Transferencia, MercadoPago
-- Envíos a todo el país via Correo Argentino
+CONTEXTO DE ESTA CONVERSACIÓN:
+- Cliente: ${contactName}
+- WhatsApp: ${waId}
+${isNewConversation ? '- Es una conversación NUEVA' : '- Conversación en curso'}
 
-Si el cliente quiere CONFIRMAR un pedido, responde con el JSON al final del mensaje:
-###PEDIDO_CONFIRMADO###
-{"productos": [...], "cantidad": X, "material": "...", "tienelogo": true/false, "notas": "..."}
-###FIN_PEDIDO###`;
+RECORDATORIO: Si el cliente CONFIRMA un pedido, incluí el JSON al final con ###PEDIDO_CONFIRMADO### y ###FIN_PEDIDO###`;
 
         const messages = [
             { role: 'system', content: systemPrompt },
@@ -368,13 +364,48 @@ async function createOrderFromWhatsApp(conversacionId, entidades, contactName, w
         
         if (convResult.rows[0]?.cliente_id) {
             clienteId = convResult.rows[0].cliente_id;
+            
+            // Update client with new data if provided
+            if (entidades.cliente) {
+                const updates = [];
+                const values = [];
+                let paramCount = 1;
+                
+                if (entidades.cliente.direccion) {
+                    updates.push(`direccion = $${paramCount++}`);
+                    values.push(entidades.cliente.direccion);
+                }
+                if (entidades.cliente.localidad) {
+                    updates.push(`localidad = $${paramCount++}`);
+                    values.push(entidades.cliente.localidad);
+                }
+                if (entidades.cliente.provincia) {
+                    updates.push(`provincia = $${paramCount++}`);
+                    values.push(entidades.cliente.provincia);
+                }
+                
+                if (updates.length > 0) {
+                    values.push(clienteId);
+                    await query(
+                        `UPDATE clientes SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount}`,
+                        values
+                    );
+                }
+            }
         } else {
-            // Create new client
+            // Create new client with all available data
+            const clienteData = entidades.cliente || {};
             const newClient = await query(
-                `INSERT INTO clientes (nombre, telefono, notas)
-                 VALUES ($1, $2, 'Cliente creado desde WhatsApp')
+                `INSERT INTO clientes (nombre, telefono, direccion, localidad, provincia, notas)
+                 VALUES ($1, $2, $3, $4, $5, 'Cliente creado desde WhatsApp')
                  RETURNING id`,
-                [contactName, waId]
+                [
+                    clienteData.nombre || contactName, 
+                    waId,
+                    clienteData.direccion || null,
+                    clienteData.localidad || null,
+                    clienteData.provincia || null
+                ]
             );
             clienteId = newClient.rows[0].id;
             
@@ -395,38 +426,54 @@ async function createOrderFromWhatsApp(conversacionId, entidades, contactName, w
 
         // Build items from AI extracted data
         const items = [];
+        const cantidad = entidades.cantidad || 1;
+        const precioUnitario = entidades.precioUnitario || 0;
+        
         if (entidades.productos) {
             for (const prod of (Array.isArray(entidades.productos) ? entidades.productos : [entidades.productos])) {
                 items.push({
                     producto: prod,
-                    cantidad: entidades.cantidad || 1,
+                    cantidad: cantidad,
                     material: entidades.material || 'mdf',
-                    precioUnitario: 0, // To be filled by admin
-                    subtotal: 0
+                    medidas: entidades.medidas || '',
+                    precioUnitario: precioUnitario,
+                    subtotal: cantidad * precioUnitario
                 });
             }
         }
+
+        // Calculate total
+        const total = entidades.total || (cantidad * precioUnitario);
 
         // Calculate delivery date (7 business days)
         const fechaEntrega = new Date();
         fechaEntrega.setDate(fechaEntrega.getDate() + 10); // ~7 business days
 
+        // Build notes with all relevant info
+        const notasPedido = [
+            '📱 Pedido creado via WhatsApp',
+            entidades.tienelogo ? '🎨 Con logo del cliente' : null,
+            entidades.medidas ? `📐 Medidas: ${entidades.medidas}` : null,
+            entidades.notas || null
+        ].filter(Boolean).join('. ');
+
         // Create order
         const orderResult = await query(
             `INSERT INTO pedidos 
              (numero, cliente_id, estado, items, total, notas, fecha_entrega, created_at)
-             VALUES ($1, $2, 'confirmado', $3, 0, $4, $5, CURRENT_TIMESTAMP)
+             VALUES ($1, $2, 'confirmado', $3, $4, $5, $6, CURRENT_TIMESTAMP)
              RETURNING id, numero`,
             [
                 orderNumber,
                 clienteId,
                 JSON.stringify(items),
-                `Pedido via WhatsApp. ${entidades.tienelogo ? 'Con logo del cliente.' : ''} ${entidades.notas || ''}`,
+                total,
+                notasPedido,
                 fechaEntrega.toISOString()
             ]
         );
 
-        console.log('Order created from WhatsApp:', orderResult.rows[0]);
+        console.log('✅ Order created from WhatsApp:', orderResult.rows[0]);
         return orderResult.rows[0];
 
     } catch (error) {

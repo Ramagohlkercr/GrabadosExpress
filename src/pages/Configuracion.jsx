@@ -19,7 +19,10 @@ import {
     Bot,
     Zap,
     Clock,
-    ExternalLink
+    ExternalLink,
+    Package,
+    MapPin,
+    Bell
 } from 'lucide-react';
 import {
     getConfiguracionAsync,
@@ -29,6 +32,108 @@ import {
 } from '../lib/storageApi';
 import { whatsappConfigApi } from '../lib/whatsappApi';
 import toast from 'react-hot-toast';
+
+// Prompt de ejemplo completo para la IA
+const promptEjemplo = `## IDENTIDAD
+Sos Ramiro Gohlke, titular de Grabados Express, un emprendimiento argentino especializado en grabado láser profesional sobre eco cuero premium, acrílico y MDF.
+
+## ESTILO DE COMUNICACIÓN
+- Español argentino natural (vos, sos, tenés)
+- Cercano, humano, claro, profesional
+- Frases cortas y directas
+- Emojis moderados (👌📦🔥✨)
+- NUNCA sonar robótico, genérico ni vendedor insistente
+- NUNCA mencionar que sos IA
+
+## POSICIONAMIENTO DE MARCA
+- Materiales PREMIUM seleccionados, no estándar
+- Grabado profundo, prolijo y duradero
+- Calidad incluso en grandes cantidades
+- Transmitir seguridad y experiencia
+
+## CONDICIONES DEL SERVICIO
+- ⏱️ Demora: 7 días hábiles
+- 📦 Envíos: Correo Argentino a sucursal (GRATIS, no detallar costos)
+- 💰 Precios mayoristas por cantidad
+- 🔥 Urgencia real: "precio vigente por hoy", "valores sujetos a actualización"
+
+## LISTA DE PRECIOS (por unidad)
+### Etiquetas Eco Cuero:
+- Hasta 50u: $800
+- 51-100u: $650
+- 101-200u: $550
+- 201-500u: $450
+- +500u: $380
+
+### Etiquetas MDF:
+- Hasta 50u: $500
+- 51-100u: $420
+- 101-200u: $350
+- +200u: $280
+
+### Etiquetas Acrílico:
+- Hasta 50u: $900
+- 51-100u: $750
+- 101-200u: $650
+- +200u: $550
+
+### Llaveros (todos los materiales):
+- Precio base + $150 por unidad
+- Incluye argolla metálica
+
+## DATOS DE PAGO (solo cuando cliente confirma)
+Banco: BIND (Banco Industrial)
+Titular: Ramiro Gohlke
+Alias: grabado.laser.expres
+
+## FLUJO DE CONVERSACIÓN
+
+### Si consulta precio:
+1. Preguntar solo lo necesario: cantidad, medida aproximada, material preferido
+2. Si tiene logo, pedirlo en buena calidad
+3. Dar precio claro con urgencia suave
+
+### Si duda o compara:
+- Destacar materiales premium
+- Mencionar terminación profesional
+- Reforzar experiencia y confiabilidad
+
+### Si está listo para comprar:
+- Confirmar: productos, cantidad, material, medidas
+- Pedir datos de envío: nombre, dirección, localidad, provincia
+- Enviar datos de pago
+- Confirmar cuando recibas comprobante
+
+## CREACIÓN DE PEDIDOS
+Cuando el cliente CONFIRMA el pedido (dice "dale", "listo", "confirmo", "va", envía comprobante de pago, etc.), DEBÉS extraer los datos y agregarlos AL FINAL de tu respuesta en este formato exacto:
+
+###PEDIDO_CONFIRMADO###
+{
+  "productos": ["Etiqueta Eco Cuero 4x2cm"],
+  "cantidad": 100,
+  "material": "ecocuero",
+  "medidas": "4x2cm",
+  "tienelogo": true,
+  "precioUnitario": 650,
+  "total": 65000,
+  "cliente": {
+    "nombre": "Nombre del cliente",
+    "telefono": "número si lo tenés",
+    "direccion": "dirección de envío",
+    "localidad": "ciudad",
+    "provincia": "provincia"
+  },
+  "notas": "Observaciones adicionales"
+}
+###FIN_PEDIDO###
+
+IMPORTANTE: Solo agregar el bloque de pedido cuando el cliente CONFIRMA. No agregarlo en consultas o cotizaciones.
+
+## REGLAS CRÍTICAS
+1. Continuar la conversación donde quedó, NO repetir saludos
+2. No inventar datos - si falta info, pedirla amablemente
+3. Responder como si atendieras personalmente por WhatsApp
+4. Objetivo: generar confianza → cerrar venta → crear pedido`;
 
 export default function Configuracion() {
     const [config, setConfig] = useState({
@@ -60,6 +165,24 @@ export default function Configuracion() {
         iaPromptSistema: '',
         horarioAtencion: { inicio: '09:00', fin: '18:00', dias: [1, 2, 3, 4, 5] },
         mensajeFueraHorario: '',
+        // Correo Argentino
+        correoApiKey: '',
+        correoAgreement: '',
+        correoTestMode: true,
+        // Datos del remitente
+        remitenteNombre: 'Grabados Express',
+        remitenteDireccion: '',
+        remitenteLocalidad: '',
+        remitenteProvincia: '',
+        remitenteCp: '',
+        remitenteTelefono: '',
+        remitenteEmail: '',
+        // Notificaciones automáticas
+        notifConfirmado: true,
+        notifProduccion: true,
+        notifListo: true,
+        notifDespachado: true,
+        notifEntregado: true,
     });
     const [waConfigLoaded, setWaConfigLoaded] = useState(false);
     const [savingWa, setSavingWa] = useState(false);
@@ -95,6 +218,24 @@ export default function Configuracion() {
                     iaPromptSistema: waConfigData.ia_prompt_sistema || '',
                     horarioAtencion: waConfigData.horario_atencion || { inicio: '09:00', fin: '18:00', dias: [1, 2, 3, 4, 5] },
                     mensajeFueraHorario: waConfigData.mensaje_fuera_horario || '',
+                    // Correo Argentino
+                    correoApiKey: waConfigData.correo_api_key || '',
+                    correoAgreement: waConfigData.correo_agreement || '',
+                    correoTestMode: waConfigData.correo_test_mode !== false,
+                    // Datos del remitente
+                    remitenteNombre: waConfigData.remitente_nombre || 'Grabados Express',
+                    remitenteDireccion: waConfigData.remitente_direccion || '',
+                    remitenteLocalidad: waConfigData.remitente_localidad || '',
+                    remitenteProvincia: waConfigData.remitente_provincia || '',
+                    remitenteCp: waConfigData.remitente_cp || '',
+                    remitenteTelefono: waConfigData.remitente_telefono || '',
+                    remitenteEmail: waConfigData.remitente_email || '',
+                    // Notificaciones automáticas
+                    notifConfirmado: waConfigData.notif_confirmado !== false,
+                    notifProduccion: waConfigData.notif_produccion !== false,
+                    notifListo: waConfigData.notif_listo !== false,
+                    notifDespachado: waConfigData.notif_despachado !== false,
+                    notifEntregado: waConfigData.notif_entregado !== false,
                 }));
                 setWaConfigLoaded(true);
             }
@@ -854,7 +995,7 @@ export default function Configuracion() {
                 </div>
 
                 {/* Prompt del Sistema */}
-                <div className="card">
+                <div className="card card-prompt">
                     <div className="card-header">
                         <h3 className="card-title">
                             <Bot size={18} />
@@ -863,17 +1004,278 @@ export default function Configuracion() {
                     </div>
                     <div className="card-body">
                         <div className="form-group">
-                            <label className="form-label">Prompt del Sistema</label>
+                            <label className="form-label">Prompt del Sistema (Instrucciones para la IA)</label>
                             <textarea
-                                className="form-input"
-                                rows={8}
+                                className="form-input prompt-textarea"
+                                rows={15}
                                 value={waConfig.iaPromptSistema}
                                 onChange={(e) => setWaConfig({ ...waConfig, iaPromptSistema: e.target.value })}
-                                placeholder="Instrucciones para la IA sobre cómo responder..."
+                                placeholder="Define la personalidad, tono y comportamiento de la IA.
+
+Ejemplo:
+## IDENTIDAD
+Sos Ramiro, dueño de Grabados Express...
+
+## LISTA DE PRECIOS
+- Etiquetas hasta 50u: $800/u
+- Etiquetas 51-100u: $650/u
+...
+
+## CREACIÓN DE PEDIDOS
+Cuando el cliente confirma, incluir:
+###PEDIDO_CONFIRMADO###
+{JSON con datos del pedido}
+###FIN_PEDIDO###"
                             />
                             <p className="text-muted text-sm mt-sm">
-                                Personaliza cómo responde la IA. Incluye información sobre productos, precios, tiempos de entrega, etc.
+                                💡 Tip: Incluí lista de precios, condiciones de envío, datos de pago y las instrucciones para crear pedidos automáticamente. 
+                                <a 
+                                    href="#" 
+                                    onClick={(e) => { 
+                                        e.preventDefault(); 
+                                        setWaConfig({ 
+                                            ...waConfig, 
+                                            iaPromptSistema: promptEjemplo 
+                                        }); 
+                                    }}
+                                    className="help-link inline"
+                                >
+                                    Cargar ejemplo completo
+                                </a>
                             </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Envíos y Notificaciones Section */}
+            <div className="section-divider">
+                <div className="divider-line"></div>
+                <div className="divider-content">
+                    <Truck size={20} />
+                    <span>Envíos y Notificaciones Automáticas</span>
+                </div>
+                <div className="divider-line"></div>
+            </div>
+
+            <div className="config-grid wa-section">
+                {/* Correo Argentino API */}
+                <div className="card card-premium">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <Package size={18} />
+                            Correo Argentino API
+                        </h3>
+                        <span className="badge badge-pro">ENVÍOS</span>
+                    </div>
+                    <div className="card-body">
+                        <div className="api-status mb-md">
+                            {waConfig.correoApiKey ? (
+                                <span className="status-badge status-ok">
+                                    <CheckCircle size={14} />
+                                    API Configurada
+                                </span>
+                            ) : (
+                                <span className="status-badge status-pending">
+                                    <XCircle size={14} />
+                                    Sin configurar
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">API Key</label>
+                            <input
+                                type="password"
+                                className="form-input"
+                                value={waConfig.correoApiKey}
+                                onChange={(e) => setWaConfig({ ...waConfig, correoApiKey: e.target.value })}
+                                placeholder="Tu API Key de Correo Argentino"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Agreement (Contrato)</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={waConfig.correoAgreement}
+                                onChange={(e) => setWaConfig({ ...waConfig, correoAgreement: e.target.value })}
+                                placeholder="Número de acuerdo comercial"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.correoTestMode}
+                                    onChange={(e) => setWaConfig({ ...waConfig, correoTestMode: e.target.checked })}
+                                />
+                                <span>Modo de prueba (usar servidor de test)</span>
+                            </label>
+                        </div>
+
+                        <a 
+                            href="https://www.correoargentino.com.ar/paq-ar" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="help-link"
+                        >
+                            <ExternalLink size={14} />
+                            Solicitar acceso a PAQ.AR API
+                        </a>
+                    </div>
+                </div>
+
+                {/* Datos del Remitente */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <MapPin size={18} />
+                            Datos del Remitente
+                        </h3>
+                    </div>
+                    <div className="card-body">
+                        <div className="form-group">
+                            <label className="form-label">Nombre / Razón Social</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={waConfig.remitenteNombre}
+                                onChange={(e) => setWaConfig({ ...waConfig, remitenteNombre: e.target.value })}
+                                placeholder="Grabados Express"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Dirección</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={waConfig.remitenteDireccion}
+                                onChange={(e) => setWaConfig({ ...waConfig, remitenteDireccion: e.target.value })}
+                                placeholder="Calle y número"
+                            />
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Localidad</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={waConfig.remitenteLocalidad}
+                                    onChange={(e) => setWaConfig({ ...waConfig, remitenteLocalidad: e.target.value })}
+                                    placeholder="Ciudad"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Provincia</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={waConfig.remitenteProvincia}
+                                    onChange={(e) => setWaConfig({ ...waConfig, remitenteProvincia: e.target.value })}
+                                    placeholder="Provincia"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">Código Postal</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={waConfig.remitenteCp}
+                                    onChange={(e) => setWaConfig({ ...waConfig, remitenteCp: e.target.value })}
+                                    placeholder="2000"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Teléfono</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={waConfig.remitenteTelefono}
+                                    onChange={(e) => setWaConfig({ ...waConfig, remitenteTelefono: e.target.value })}
+                                    placeholder="+54 9..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Email</label>
+                            <input
+                                type="email"
+                                className="form-input"
+                                value={waConfig.remitenteEmail}
+                                onChange={(e) => setWaConfig({ ...waConfig, remitenteEmail: e.target.value })}
+                                placeholder="contacto@grabadosexpress.com"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notificaciones Automáticas */}
+                <div className="card">
+                    <div className="card-header">
+                        <h3 className="card-title">
+                            <Bell size={18} />
+                            Notificaciones Automáticas
+                        </h3>
+                    </div>
+                    <div className="card-body">
+                        <p className="text-muted text-sm mb-md">
+                            Seleccioná qué notificaciones se envían automáticamente por WhatsApp cuando cambia el estado del pedido.
+                        </p>
+
+                        <div className="notif-checks">
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.notifConfirmado}
+                                    onChange={(e) => setWaConfig({ ...waConfig, notifConfirmado: e.target.checked })}
+                                />
+                                <span>✅ Pedido confirmado</span>
+                            </label>
+
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.notifProduccion}
+                                    onChange={(e) => setWaConfig({ ...waConfig, notifProduccion: e.target.checked })}
+                                />
+                                <span>🔧 En producción</span>
+                            </label>
+
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.notifListo}
+                                    onChange={(e) => setWaConfig({ ...waConfig, notifListo: e.target.checked })}
+                                />
+                                <span>🎉 Pedido listo</span>
+                            </label>
+
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.notifDespachado}
+                                    onChange={(e) => setWaConfig({ ...waConfig, notifDespachado: e.target.checked })}
+                                />
+                                <span>🚚 Despachado (con tracking)</span>
+                            </label>
+
+                            <label className="form-check">
+                                <input
+                                    type="checkbox"
+                                    checked={waConfig.notifEntregado}
+                                    onChange={(e) => setWaConfig({ ...waConfig, notifEntregado: e.target.checked })}
+                                />
+                                <span>📦 Entregado</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -1086,6 +1488,23 @@ export default function Configuracion() {
         .help-link:hover {
           text-decoration: underline;
         }
+
+        .help-link.inline {
+          display: inline;
+          margin-left: 0.5rem;
+        }
+
+        .card-prompt {
+          grid-column: 1 / -1;
+        }
+
+        .prompt-textarea {
+          font-family: 'JetBrains Mono', 'Fira Code', monospace;
+          font-size: 0.85rem;
+          line-height: 1.6;
+          min-height: 400px;
+          white-space: pre-wrap;
+        }
         
         .dias-grid {
           display: flex;
@@ -1121,6 +1540,32 @@ export default function Configuracion() {
           color: #000;
           border-color: transparent;
           font-weight: 600;
+        }
+
+        .notif-checks {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .notif-checks .form-check {
+          padding: 0.75rem;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
+          transition: all var(--transition-fast);
+        }
+
+        .notif-checks .form-check:hover {
+          background: var(--bg-hover);
+        }
+
+        .form-row {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .form-row .form-group {
+          flex: 1;
         }
         
         .wa-save-section {

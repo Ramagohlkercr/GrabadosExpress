@@ -293,6 +293,7 @@ async function getConfig(req, res) {
         whatsapp_token: config.whatsapp_token ? '***configured***' : null,
         openai_api_key: config.openai_api_key ? '***configured***' : null,
         meta_app_secret: config.meta_app_secret ? '***configured***' : null,
+        correo_api_key: config.correo_api_key ? '***configured***' : null,
     });
 }
 
@@ -310,7 +311,25 @@ async function saveConfig(req, res) {
         iaActiva,
         iaPromptSistema,
         horarioAtencion,
-        mensajeFueraHorario
+        mensajeFueraHorario,
+        // Correo Argentino
+        correoApiKey,
+        correoAgreement,
+        correoTestMode,
+        // Remitente
+        remitenteNombre,
+        remitenteDireccion,
+        remitenteLocalidad,
+        remitenteProvincia,
+        remitenteCp,
+        remitenteTelefono,
+        remitenteEmail,
+        // Notificaciones
+        notifConfirmado,
+        notifProduccion,
+        notifListo,
+        notifDespachado,
+        notifEntregado
     } = req.body;
 
     // Build update query dynamically (only update provided fields)
@@ -365,6 +384,69 @@ async function saveConfig(req, res) {
     if (mensajeFueraHorario !== undefined) {
         updates.push(`mensaje_fuera_horario = $${paramIndex++}`);
         params.push(mensajeFueraHorario);
+    }
+    // Correo Argentino fields
+    if (correoApiKey && correoApiKey !== '***configured***') {
+        updates.push(`correo_api_key = $${paramIndex++}`);
+        params.push(correoApiKey);
+    }
+    if (correoAgreement !== undefined) {
+        updates.push(`correo_agreement = $${paramIndex++}`);
+        params.push(correoAgreement);
+    }
+    if (correoTestMode !== undefined) {
+        updates.push(`correo_test_mode = $${paramIndex++}`);
+        params.push(correoTestMode);
+    }
+    // Remitente fields
+    if (remitenteNombre !== undefined) {
+        updates.push(`remitente_nombre = $${paramIndex++}`);
+        params.push(remitenteNombre);
+    }
+    if (remitenteDireccion !== undefined) {
+        updates.push(`remitente_direccion = $${paramIndex++}`);
+        params.push(remitenteDireccion);
+    }
+    if (remitenteLocalidad !== undefined) {
+        updates.push(`remitente_localidad = $${paramIndex++}`);
+        params.push(remitenteLocalidad);
+    }
+    if (remitenteProvincia !== undefined) {
+        updates.push(`remitente_provincia = $${paramIndex++}`);
+        params.push(remitenteProvincia);
+    }
+    if (remitenteCp !== undefined) {
+        updates.push(`remitente_cp = $${paramIndex++}`);
+        params.push(remitenteCp);
+    }
+    if (remitenteTelefono !== undefined) {
+        updates.push(`remitente_telefono = $${paramIndex++}`);
+        params.push(remitenteTelefono);
+    }
+    if (remitenteEmail !== undefined) {
+        updates.push(`remitente_email = $${paramIndex++}`);
+        params.push(remitenteEmail);
+    }
+    // Notification settings
+    if (notifConfirmado !== undefined) {
+        updates.push(`notif_confirmado = $${paramIndex++}`);
+        params.push(notifConfirmado);
+    }
+    if (notifProduccion !== undefined) {
+        updates.push(`notif_produccion = $${paramIndex++}`);
+        params.push(notifProduccion);
+    }
+    if (notifListo !== undefined) {
+        updates.push(`notif_listo = $${paramIndex++}`);
+        params.push(notifListo);
+    }
+    if (notifDespachado !== undefined) {
+        updates.push(`notif_despachado = $${paramIndex++}`);
+        params.push(notifDespachado);
+    }
+    if (notifEntregado !== undefined) {
+        updates.push(`notif_entregado = $${paramIndex++}`);
+        params.push(notifEntregado);
     }
 
     updates.push(`updated_at = CURRENT_TIMESTAMP`);

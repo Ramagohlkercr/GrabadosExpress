@@ -14,7 +14,11 @@ import {
     CheckCircle,
     Clock,
     ExternalLink,
-    DollarSign
+    DollarSign,
+    MessageCircle,
+    Send,
+    Bell,
+    Loader2
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import {
@@ -46,6 +50,7 @@ import {
     getSucursales as getSucursalesDB,
     getLocalidadesByProvincia
 } from '../lib/sucursalesCorreo';
+import { notificacionesApi, TIPOS_NOTIFICACION } from '../lib/enviosApi';
 import toast from 'react-hot-toast';
 
 const ESTADOS_ENVIO = {
@@ -149,6 +154,13 @@ export default function Envios() {
     const [trackingEvents, setTrackingEvents] = useState([]);
     const [cotizacion, setCotizacion] = useState(null);
     const [cotizando, setCotizando] = useState(false);
+    
+    // WhatsApp Notifications
+    const [notifModalOpen, setNotifModalOpen] = useState(false);
+    const [notifEnvio, setNotifEnvio] = useState(null);
+    const [notifTipo, setNotifTipo] = useState('');
+    const [notifMensaje, setNotifMensaje] = useState('');
+    const [enviandoNotif, setEnviandoNotif] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -174,6 +186,70 @@ export default function Envios() {
         setFormData(emptyEnvio);
         setCotizacion(null);
         setModalOpen(true);
+    }
+
+    // ============================================
+    // WHATSAPP NOTIFICATIONS
+    // ============================================
+    function openNotifModal(envio) {
+        setNotifEnvio(envio);
+        setNotifTipo('');
+        setNotifMensaje('');
+        setNotifModalOpen(true);
+    }
+
+    async function handleEnviarNotificacion() {
+        if (!notifEnvio) return;
+        if (!notifTipo && !notifMensaje) {
+            toast.error('Seleccioná un tipo de notificación o escribí un mensaje');
+            return;
+        }
+
+        setEnviandoNotif(true);
+        try {
+            const result = await notificacionesApi.enviar(
+                notifEnvio.pedidoId,
+                notifTipo,
+                notifMensaje || null
+            );
+
+            if (result.success) {
+                toast.success('📱 Notificación enviada por WhatsApp');
+                setNotifModalOpen(false);
+            } else {
+                toast.error(result.error || 'Error al enviar notificación');
+            }
+        } catch (error) {
+            console.error('Error enviando notificación:', error);
+            toast.error('Error al enviar notificación');
+        } finally {
+            setEnviandoNotif(false);
+        }
+    }
+
+    async function handleNotificarDespacho(envio) {
+        const cliente = clientes.find(c => c.id === envio.clienteId);
+        if (!cliente?.telefono) {
+            toast.error('El cliente no tiene teléfono configurado');
+            return;
+        }
+
+        if (confirm(`¿Enviar notificación de despacho a ${cliente.nombre}?\n\nTracking: ${envio.trackingNumber}`)) {
+            try {
+                const result = await notificacionesApi.enviar(
+                    envio.pedidoId,
+                    'pedido_despachado',
+                    null
+                );
+                if (result.success) {
+                    toast.success('📱 Notificación de despacho enviada');
+                } else {
+                    toast.error(result.error || 'Error al enviar');
+                }
+            } catch (error) {
+                toast.error('Error al enviar notificación');
+            }
+        }
     }
 
     // Cotizar envío usando MiCorreo API
@@ -713,6 +789,13 @@ export default function Envios() {
                                                 <Download size={14} />
                                                 Rótulo
                                             </button>
+                                            <button
+                                                className="btn btn-success btn-sm"
+                                                onClick={() => handleNotificarDespacho(envio)}
+                                                title="Notificar al cliente por WhatsApp"
+                                            >
+                                                <MessageCircle size={14} />
+                                            </button>
                                             {envio.estado === ESTADOS_ENVIO.CREADO && (
                                                 <button
                                                     className="btn btn-ghost btn-sm"
@@ -724,6 +807,13 @@ export default function Envios() {
                                             )}
                                         </>
                                     )}
+                                    <button
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => openNotifModal(envio)}
+                                        title="Enviar notificación personalizada"
+                                    >
+                                        <Bell size={14} />
+                                    </button>
                                 </div>
                             </div>
                         );
@@ -1188,6 +1278,79 @@ export default function Envios() {
                 )}
             </Modal>
 
+            {/* Modal: Enviar Notificación WhatsApp */}
+            <Modal
+                isOpen={notifModalOpen}
+                onClose={() => setNotifModalOpen(false)}
+                title="📱 Enviar Notificación por WhatsApp"
+            >
+                {notifEnvio && (
+                    <div className="notif-modal-content">
+                        <div className="notif-info-box">
+                            <span><strong>Destinatario:</strong> {notifEnvio.destinatario?.nombre}</span>
+                            <span><strong>Teléfono:</strong> {notifEnvio.destinatario?.telefono || clientes.find(c => c.id === notifEnvio.clienteId)?.telefono || 'No disponible'}</span>
+                            {notifEnvio.trackingNumber && (
+                                <span><strong>Tracking:</strong> {notifEnvio.trackingNumber}</span>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Tipo de notificación</label>
+                            <div className="notif-types-grid">
+                                {Object.entries(TIPOS_NOTIFICACION).map(([key, val]) => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        className={`notif-type-btn ${notifTipo === key ? 'active' : ''}`}
+                                        onClick={() => setNotifTipo(key)}
+                                    >
+                                        <span className="notif-icon">{val.icon}</span>
+                                        <span className="notif-label">{val.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">O mensaje personalizado</label>
+                            <textarea
+                                className="form-input"
+                                rows={4}
+                                value={notifMensaje}
+                                onChange={(e) => setNotifMensaje(e.target.value)}
+                                placeholder="Escribir mensaje personalizado para el cliente..."
+                            />
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setNotifModalOpen(false)}
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                className="btn btn-success"
+                                onClick={handleEnviarNotificacion}
+                                disabled={(!notifTipo && !notifMensaje) || enviandoNotif}
+                            >
+                                {enviandoNotif ? (
+                                    <>
+                                        <Loader2 size={16} className="spinner" />
+                                        Enviando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send size={16} />
+                                        Enviar WhatsApp
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
             <style>{`
         .alert {
           display: flex;
@@ -1492,6 +1655,93 @@ export default function Envios() {
           .envio-actions .btn {
             flex: 1;
             justify-content: center;
+          }
+        }
+
+        /* WhatsApp Notification Modal */
+        .notif-modal-content {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .notif-info-box {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          padding: 1rem;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
+          font-size: 0.9rem;
+        }
+
+        .notif-types-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.5rem;
+        }
+
+        .notif-type-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.75rem 0.5rem;
+          background: var(--bg-tertiary);
+          border: 2px solid transparent;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .notif-type-btn:hover {
+          border-color: var(--accent);
+        }
+
+        .notif-type-btn.active {
+          border-color: var(--accent);
+          background: rgba(245, 158, 11, 0.1);
+        }
+
+        .notif-icon {
+          font-size: 1.25rem;
+        }
+
+        .notif-label {
+          font-size: 0.7rem;
+          text-align: center;
+          font-weight: 500;
+        }
+
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          margin-top: 0.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid var(--border-color);
+        }
+
+        .btn-success {
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+        }
+
+        .btn-success:hover {
+          background: linear-gradient(135deg, #16a34a, #15803d);
+        }
+
+        .spinner {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 430px) {
+          .notif-types-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
       `}</style>
