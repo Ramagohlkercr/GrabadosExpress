@@ -86,6 +86,43 @@ export const enviosApi = {
         link.download = `etiqueta-${tracking || 'envio'}.pdf`;
         link.click();
         URL.revokeObjectURL(link.href);
+    },
+
+    /**
+     * Consultar tracking público (sin API key)
+     */
+    async trackingPublico(tracking) {
+        const response = await fetch(`${API_BASE}?action=tracking-publico&tracking=${encodeURIComponent(tracking)}`);
+        return response.json();
+    },
+
+    /**
+     * Asignar tracking manual a un pedido
+     */
+    async asignarTracking(pedidoId, tracking, sucursalNombre = null) {
+        const response = await fetch(`${API_BASE}?action=asignar-tracking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pedidoId, tracking, sucursalNombre })
+        });
+        return response.json();
+    },
+
+    /**
+     * Listar pedidos con envío
+     */
+    async listar(estado = null) {
+        let url = `${API_BASE}?action=listar`;
+        if (estado) url += `&estado=${estado}`;
+        const response = await fetch(url);
+        return response.json();
+    },
+
+    /**
+     * Obtener URL de tracking público
+     */
+    getTrackingUrl(tracking) {
+        return `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`;
     }
 };
 

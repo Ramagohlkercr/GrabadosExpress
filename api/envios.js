@@ -85,6 +85,27 @@ export default async function handler(req, res) {
                 if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
                 return await syncAllTracking(req, res);
 
+            // ============================================
+            // TRACKING PÚBLICO (SIN CREDENCIALES)
+            // ============================================
+            case 'tracking-publico':
+                if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+                return await consultarTrackingPublico(req, res);
+
+            // ============================================
+            // ASIGNAR TRACKING A PEDIDO
+            // ============================================
+            case 'asignar-tracking':
+                if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+                return await asignarTracking(req, res);
+
+            // ============================================
+            // LISTAR PEDIDOS CON ENVÍO
+            // ============================================
+            case 'listar':
+                if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+                return await listarEnvios(req, res);
+
             default:
                 return res.status(400).json({ error: 'Acción no válida' });
         }
@@ -827,5 +848,222 @@ async function enviarNotificacionAutomatica(pedidoId, tipo, config) {
 
     } catch (error) {
         console.error('Error en notificación automática:', error);
+    }
+}
+
+// ============================================
+// CONSULTAR TRACKING PÚBLICO (SIN API KEY)
+// ============================================
+async function consultarTrackingPublico(req, res) {
+    const { tracking } = req.query;
+
+    if (!tracking) {
+        return res.status(400).json({ error: 'Número de tracking requerido' });
+    }
+
+    try {
+        // Intentar con la API pública de Correo Argentino
+        // Esta URL es accesible sin autenticación para consultar estados
+        const url = `https://www.correoargentino.com.ar/sites/all/modules/custom/correo_argentino_general/include/tracking_service.php?id=${encodeURIComponent(tracking)}`;
+        
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json, text/plain, */*',
+                'Referer': 'https://www.correoargentino.com.ar/formularios/ondnc'
+            }
+        });
+
+        if (!response.ok) {
+            // Fallback: devolver estado genérico
+            return res.status(200).json({
+                tracking,
+                estado: 'pendiente',
+                ultimoEvento: 'Sin información disponible',
+                eventos: [],
+                mensaje: 'Consultá el tracking en correoargentino.com.ar',
+                urlTracking: `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`
+            });
+        }
+
+        const text = await response.text();
+        
+        // Intentar parsear como JSON
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            // Si no es JSON, puede ser HTML o error
+            return res.status(200).json({
+                tracking,
+                estado: 'en_consulta',
+                ultimoEvento: 'Consultando...',
+                eventos: [],
+                urlTracking: `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`
+            });
+        }
+
+        // Parsear respuesta de Correo Argentino
+        let estado = 'en_transito';
+        let ultimoEvento = '';
+        let eventos = [];
+
+        if (data && Array.isArray(data.eventos)) {
+            eventos = data.eventos.map(e => ({
+                fecha: e.fecha,
+                hora: e.hora,
+                descripcion: e.descripcion,
+                ubicacion: e.planta || e.ubicacion || ''
+            }));
+
+            if (eventos.length > 0) {
+                ultimoEvento = eventos[0].descripcion;
+                
+                // Determinar estado
+                const ultimo = ultimoEvento.toLowerCase();
+                if (ultimo.includes('entregado') || ultimo.includes('entrega exitosa')) {
+                    estado = 'entregado';
+                } else if (ultimo.includes('disponible') || ultimo.includes('sucursal')) {
+                    estado = 'disponible_retiro';
+                } else if (ultimo.includes('reparto') || ultimo.includes('camino')) {
+                    estado = 'en_reparto';
+                } else if (ultimo.includes('transito') || ultimo.includes('centro')) {
+                    estado = 'en_transito';
+                }
+            }
+        } else if (data && data.mensaje) {
+            ultimoEvento = data.mensaje;
+        }
+
+        return res.status(200).json({
+            success: true,
+            tracking,
+            estado,
+            ultimoEvento,
+            eventos,
+            urlTracking: `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`
+        });
+
+    } catch (error) {
+        console.error('Error consultando tracking público:', error);
+        return res.status(200).json({
+            tracking,
+            estado: 'pendiente',
+            ultimoEvento: 'Error consultando tracking',
+            eventos: [],
+            urlTracking: `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`
+        });
+    }
+}
+
+// ============================================
+// ASIGNAR TRACKING MANUAL A PEDIDO
+// ============================================
+async function asignarTracking(req, res) {
+    const { pedidoId, tracking, sucursalNombre } = req.body;
+
+    if (!pedidoId || !tracking) {
+        return res.status(400).json({ error: 'pedidoId y tracking son requeridos' });
+    }
+
+    try {
+        // Verificar que el pedido existe
+        const pedidoResult = await query('SELECT id, numero FROM pedidos WHERE id = $1', [pedidoId]);
+        
+        if (pedidoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Pedido no encontrado' });
+        }
+
+        // Actualizar pedido con tracking
+        await query(`
+            UPDATE pedidos SET 
+                envio_tracking = $1,
+                envio_estado = 'despachado',
+                envio_sucursal_nombre = $2,
+                envio_fecha_despacho = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3
+        `, [tracking.trim().toUpperCase(), sucursalNombre || null, pedidoId]);
+
+        // Obtener config para ver si hay que notificar
+        const configResult = await query('SELECT * FROM whatsapp_config WHERE id = 1');
+        const config = configResult.rows[0];
+
+        let notificacionEnviada = false;
+
+        // Si tiene notificación automática activa, enviar
+        if (config?.notif_despachado && config?.whatsapp_token) {
+            await enviarNotificacionAutomatica(config, pedidoId, 'pedido_despachado');
+            notificacionEnviada = true;
+        }
+
+        return res.status(200).json({
+            success: true,
+            tracking: tracking.trim().toUpperCase(),
+            pedidoNumero: pedidoResult.rows[0].numero,
+            notificacionEnviada
+        });
+
+    } catch (error) {
+        console.error('Error asignando tracking:', error);
+        return res.status(500).json({ error: error.message });
+    }
+}
+
+// ============================================
+// LISTAR PEDIDOS CON ENVÍO
+// ============================================
+async function listarEnvios(req, res) {
+    const { estado } = req.query;
+
+    try {
+        let sql = `
+            SELECT 
+                p.id,
+                p.numero,
+                p.estado,
+                p.total,
+                p.envio_tracking,
+                p.envio_estado,
+                p.envio_sucursal_nombre,
+                p.envio_fecha_despacho,
+                p.envio_ultimo_evento,
+                p.created_at,
+                c.id as cliente_id,
+                c.nombre as cliente_nombre,
+                c.telefono as cliente_telefono,
+                c.direccion as cliente_direccion,
+                c.localidad as cliente_localidad,
+                c.provincia as cliente_provincia
+            FROM pedidos p
+            LEFT JOIN clientes c ON p.cliente_id = c.id
+            WHERE p.estado IN ('terminado', 'listo', 'entregado')
+        `;
+        
+        const params = [];
+
+        if (estado) {
+            params.push(estado);
+            sql += ` AND p.envio_estado = $${params.length}`;
+        }
+
+        sql += ' ORDER BY p.envio_fecha_despacho DESC NULLS LAST, p.created_at DESC';
+
+        const result = await query(sql, params);
+
+        // Separar en con tracking y sin tracking
+        const conTracking = result.rows.filter(p => p.envio_tracking);
+        const sinTracking = result.rows.filter(p => !p.envio_tracking);
+
+        return res.status(200).json({
+            success: true,
+            conTracking,
+            sinTracking,
+            total: result.rows.length
+        });
+
+    } catch (error) {
+        console.error('Error listando envíos:', error);
+        return res.status(500).json({ error: error.message });
     }
 }

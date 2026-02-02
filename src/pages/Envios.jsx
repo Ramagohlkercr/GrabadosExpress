@@ -18,7 +18,10 @@ import {
     MessageCircle,
     Send,
     Bell,
-    Loader2
+    Loader2,
+    Edit3,
+    Copy,
+    Link
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import {
@@ -39,7 +42,8 @@ import {
     descargarPDF,
     PROVINCIAS,
     DELIVERY_TYPES,
-    SERVICE_TYPES
+    SERVICE_TYPES,
+    getTrackingUrl
 } from '../lib/correoArgentino';
 import {
     hasMiCorreoCredentials,
@@ -161,9 +165,22 @@ export default function Envios() {
     const [notifTipo, setNotifTipo] = useState('');
     const [notifMensaje, setNotifMensaje] = useState('');
     const [enviandoNotif, setEnviandoNotif] = useState(false);
+    
+    // Tracking Manual (nuevo)
+    const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+    const [trackingPedido, setTrackingPedido] = useState(null);
+    const [trackingInput, setTrackingInput] = useState('');
+    const [sucursalInput, setSucursalInput] = useState('');
+    const [asignandoTracking, setAsignandoTracking] = useState(false);
+    
+    // Pedidos desde BD
+    const [pedidosDB, setPedidosDB] = useState({ conTracking: [], sinTracking: [] });
+    const [loadingPedidos, setLoadingPedidos] = useState(true);
+    const [activeTab, setActiveTab] = useState('pendientes'); // 'pendientes' | 'despachados'
 
     useEffect(() => {
         loadData();
+        loadPedidosDB();
     }, []);
 
     useEffect(() => {
@@ -181,11 +198,103 @@ export default function Envios() {
         setConfig(getConfiguracion());
     }
 
+    // Cargar pedidos desde la base de datos
+    async function loadPedidosDB() {
+        setLoadingPedidos(true);
+        try {
+            const response = await fetch('/api/envios?action=listar');
+            const data = await response.json();
+            if (data.success) {
+                setPedidosDB({
+                    conTracking: data.conTracking || [],
+                    sinTracking: data.sinTracking || []
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando pedidos:', error);
+        } finally {
+            setLoadingPedidos(false);
+        }
+    }
+
     function openNewModal() {
         // Permitir crear envíos siempre (modo demo si no hay credenciales)
         setFormData(emptyEnvio);
         setCotizacion(null);
         setModalOpen(true);
+    }
+
+    // ============================================
+    // TRACKING MANUAL
+    // ============================================
+    function openTrackingModal(pedido) {
+        setTrackingPedido(pedido);
+        setTrackingInput(pedido.envio_tracking || '');
+        setSucursalInput(pedido.envio_sucursal_nombre || '');
+        setTrackingModalOpen(true);
+    }
+
+    async function handleAsignarTracking() {
+        if (!trackingPedido || !trackingInput.trim()) {
+            toast.error('Ingresá un número de tracking');
+            return;
+        }
+
+        setAsignandoTracking(true);
+        try {
+            const response = await fetch('/api/envios?action=asignar-tracking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pedidoId: trackingPedido.id,
+                    tracking: trackingInput.trim(),
+                    sucursalNombre: sucursalInput.trim() || null
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast.success(`✅ Tracking asignado: ${result.tracking}`);
+                if (result.notificacionEnviada) {
+                    toast.success('📱 Notificación enviada al cliente');
+                }
+                setTrackingModalOpen(false);
+                loadPedidosDB();
+            } else {
+                toast.error(result.error || 'Error asignando tracking');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            toast.error('Error asignando tracking');
+        } finally {
+            setAsignandoTracking(false);
+        }
+    }
+
+    async function handleConsultarTracking(tracking) {
+        if (!tracking) return;
+        
+        toast.loading('Consultando tracking...', { id: 'tracking' });
+        try {
+            const response = await fetch(`/api/envios?action=tracking-publico&tracking=${encodeURIComponent(tracking)}`);
+            const data = await response.json();
+            toast.dismiss('tracking');
+
+            if (data.success || data.urlTracking) {
+                // Abrir en nueva pestaña
+                window.open(data.urlTracking || `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`, '_blank');
+            }
+        } catch (error) {
+            toast.dismiss('tracking');
+            // Abrir directamente la URL de Correo Argentino
+            window.open(`https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`, '_blank');
+        }
+    }
+
+    function copyTracking(tracking) {
+        navigator.clipboard.writeText(tracking);
+        toast.success('Tracking copiado');
     }
 
     // ============================================
@@ -689,136 +798,303 @@ export default function Envios() {
                     </div>
                     <div>
                         <h1>Envíos</h1>
-                        <p className="text-muted">{envios.length} envío{envios.length !== 1 ? 's' : ''}</p>
+                        <p className="text-muted">
+                            {pedidosDB.sinTracking.length} pendientes · {pedidosDB.conTracking.length} despachados
+                        </p>
                     </div>
                 </div>
-                <button className="btn btn-primary" onClick={openNewModal}>
-                    <Plus size={18} />
-                    Nuevo Envío
+                <button 
+                    className="btn btn-secondary" 
+                    onClick={loadPedidosDB}
+                    disabled={loadingPedidos}
+                >
+                    <RefreshCw size={18} className={loadingPedidos ? 'spin' : ''} />
+                    Actualizar
                 </button>
             </div>
 
-            {/* Alert si no hay credenciales */}
-            {!credentialsConfigured && (
-                <div className="alert alert-info mb-lg" onClick={() => navigate('/configuracion')}>
-                    <AlertTriangle size={20} />
-                    <span>
-                        <strong>Modo demo:</strong> Los envíos se guardan localmente. Configurá las credenciales para conectar con Correo Argentino.
-                    </span>
-                    <ExternalLink size={18} />
+            {/* Tabs para cambiar entre pendientes y despachados */}
+            <div className="envios-tabs mb-lg">
+                <button 
+                    className={`tab-btn ${activeTab === 'pendientes' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('pendientes')}
+                >
+                    <Package size={18} />
+                    Pendientes de Despacho
+                    {pedidosDB.sinTracking.length > 0 && (
+                        <span className="badge badge-warning">{pedidosDB.sinTracking.length}</span>
+                    )}
+                </button>
+                <button 
+                    className={`tab-btn ${activeTab === 'despachados' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('despachados')}
+                >
+                    <Truck size={18} />
+                    Despachados
+                    {pedidosDB.conTracking.length > 0 && (
+                        <span className="badge badge-success">{pedidosDB.conTracking.length}</span>
+                    )}
+                </button>
+            </div>
+
+            {/* Lista de Pedidos Pendientes (sin tracking) */}
+            {activeTab === 'pendientes' && (
+                <div className="envios-section">
+                    {loadingPedidos ? (
+                        <div className="card loading-card">
+                            <Loader2 size={32} className="spin" />
+                            <p>Cargando pedidos...</p>
+                        </div>
+                    ) : pedidosDB.sinTracking.length === 0 ? (
+                        <div className="card">
+                            <div className="empty-state">
+                                <CheckCircle size={48} className="text-success" />
+                                <h3>¡Todo despachado!</h3>
+                                <p className="text-muted">No hay pedidos pendientes de envío</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="pedidos-envio-list">
+                            {pedidosDB.sinTracking.map(pedido => (
+                                <div key={pedido.id} className="pedido-envio-card">
+                                    <div className="pedido-info">
+                                        <div className="pedido-numero">
+                                            <Package size={18} />
+                                            <strong>#{pedido.numero}</strong>
+                                            <span className={`badge badge-${pedido.estado === 'terminado' ? 'success' : 'info'}`}>
+                                                {pedido.estado}
+                                            </span>
+                                        </div>
+                                        <div className="pedido-cliente">
+                                            <span className="cliente-nombre">{pedido.cliente_nombre || 'Sin cliente'}</span>
+                                            {pedido.cliente_telefono && (
+                                                <span className="cliente-tel">{pedido.cliente_telefono}</span>
+                                            )}
+                                        </div>
+                                        {pedido.cliente_localidad && (
+                                            <div className="pedido-ubicacion">
+                                                <MapPin size={14} />
+                                                <span>{pedido.cliente_localidad}, {pedido.cliente_provincia}</span>
+                                            </div>
+                                        )}
+                                        <div className="pedido-total">
+                                            <DollarSign size={14} />
+                                            <span>${pedido.total?.toLocaleString() || 0}</span>
+                                        </div>
+                                    </div>
+                                    <div className="pedido-actions">
+                                        <button 
+                                            className="btn btn-primary"
+                                            onClick={() => openTrackingModal(pedido)}
+                                        >
+                                            <Edit3 size={16} />
+                                            Agregar Tracking
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* Search */}
-            <div className="search-bar mb-lg">
-                <div className="search-box">
-                    <Search className="icon" size={18} />
-                    <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Buscar por tracking o destinatario..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
-
-            {/* Lista de envíos */}
-            {filteredEnvios.length === 0 ? (
-                <div className="card">
-                    <div className="empty-state">
-                        <div className="empty-state-icon">
-                            <Truck size={32} />
+            {/* Lista de Pedidos Despachados (con tracking) */}
+            {activeTab === 'despachados' && (
+                <div className="envios-section">
+                    {loadingPedidos ? (
+                        <div className="card loading-card">
+                            <Loader2 size={32} className="spin" />
+                            <p>Cargando...</p>
                         </div>
-                        <h3 className="empty-state-title">No hay envíos</h3>
-                        <p className="empty-state-description">
-                            Creá tu primer envío
-                        </p>
-                        <button className="btn btn-primary" onClick={openNewModal}>
-                            <Plus size={18} />
-                            Crear Envío
+                    ) : pedidosDB.conTracking.length === 0 ? (
+                        <div className="card">
+                            <div className="empty-state">
+                                <Truck size={48} />
+                                <h3>Sin envíos despachados</h3>
+                                <p className="text-muted">Asigná tracking a los pedidos pendientes</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="pedidos-envio-list">
+                            {pedidosDB.conTracking.map(pedido => (
+                                <div key={pedido.id} className="pedido-envio-card despachado">
+                                    <div className="pedido-info">
+                                        <div className="pedido-numero">
+                                            <Truck size={18} />
+                                            <strong>#{pedido.numero}</strong>
+                                            <span className={`badge badge-${
+                                                pedido.envio_estado === 'entregado' ? 'success' : 
+                                                pedido.envio_estado === 'despachado' ? 'warning' : 'info'
+                                            }`}>
+                                                {pedido.envio_estado || 'despachado'}
+                                            </span>
+                                        </div>
+                                        <div className="tracking-info">
+                                            <span className="tracking-number">{pedido.envio_tracking}</span>
+                                            <button 
+                                                className="btn-icon" 
+                                                onClick={() => copyTracking(pedido.envio_tracking)}
+                                                title="Copiar tracking"
+                                            >
+                                                <Copy size={14} />
+                                            </button>
+                                            <button 
+                                                className="btn-icon"
+                                                onClick={() => handleConsultarTracking(pedido.envio_tracking)}
+                                                title="Ver en Correo Argentino"
+                                            >
+                                                <ExternalLink size={14} />
+                                            </button>
+                                        </div>
+                                        <div className="pedido-cliente">
+                                            <span className="cliente-nombre">{pedido.cliente_nombre}</span>
+                                        </div>
+                                        {pedido.envio_sucursal_nombre && (
+                                            <div className="pedido-ubicacion">
+                                                <MapPin size={14} />
+                                                <span>{pedido.envio_sucursal_nombre}</span>
+                                            </div>
+                                        )}
+                                        {pedido.envio_fecha_despacho && (
+                                            <div className="pedido-fecha">
+                                                <Clock size={14} />
+                                                <span>Despachado: {new Date(pedido.envio_fecha_despacho).toLocaleDateString('es-AR')}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="pedido-actions">
+                                        <button 
+                                            className="btn btn-sm btn-success"
+                                            onClick={() => {
+                                                setNotifEnvio({ pedidoId: pedido.id, clienteNombre: pedido.cliente_nombre });
+                                                setNotifTipo('pedido_despachado');
+                                                setNotifModalOpen(true);
+                                            }}
+                                            title="Notificar cliente"
+                                        >
+                                            <MessageCircle size={16} />
+                                        </button>
+                                        <button 
+                                            className="btn btn-sm btn-secondary"
+                                            onClick={() => openTrackingModal(pedido)}
+                                            title="Editar tracking"
+                                        >
+                                            <Edit3 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Modal Asignar Tracking */}
+            <Modal
+                isOpen={trackingModalOpen}
+                onClose={() => setTrackingModalOpen(false)}
+                title={`Asignar Tracking - Pedido #${trackingPedido?.numero || ''}`}
+            >
+                <div className="tracking-modal-content">
+                    <div className="cliente-info-box">
+                        <strong>{trackingPedido?.cliente_nombre}</strong>
+                        {trackingPedido?.cliente_telefono && (
+                            <span>{trackingPedido.cliente_telefono}</span>
+                        )}
+                        {trackingPedido?.cliente_localidad && (
+                            <span>
+                                <MapPin size={14} />
+                                {trackingPedido.cliente_localidad}, {trackingPedido.cliente_provincia}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Número de Tracking *</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Ej: CP123456789AR"
+                            value={trackingInput}
+                            onChange={(e) => setTrackingInput(e.target.value.toUpperCase())}
+                            autoFocus
+                        />
+                        <small className="text-muted">
+                            Ingresá el código que te dio PAQ.AR al crear el envío
+                        </small>
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Sucursal de destino (opcional)</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            placeholder="Ej: Correo Argentino Quilmes"
+                            value={sucursalInput}
+                            onChange={(e) => setSucursalInput(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="info-box">
+                        <Bell size={18} />
+                        <span>
+                            Si tenés notificaciones automáticas activadas, se enviará un WhatsApp al cliente con el tracking.
+                        </span>
+                    </div>
+
+                    <div className="modal-actions">
+                        <button 
+                            className="btn btn-secondary" 
+                            onClick={() => setTrackingModalOpen(false)}
+                        >
+                            Cancelar
+                        </button>
+                        <button 
+                            className="btn btn-primary"
+                            onClick={handleAsignarTracking}
+                            disabled={asignandoTracking || !trackingInput.trim()}
+                        >
+                            {asignandoTracking ? (
+                                <>
+                                    <Loader2 size={18} className="spin" />
+                                    Guardando...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle size={18} />
+                                    Guardar Tracking
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
-            ) : (
-                <div className="envios-list">
-                    {filteredEnvios.map(envio => {
-                        const estadoInfo = ESTADOS_LABELS[envio.estado] || ESTADOS_LABELS.pendiente;
+            </Modal>
 
-                        return (
-                            <div key={envio.id} className="envio-card">
-                                <div className="envio-header">
-                                    <div className="envio-tracking">
-                                        <Package size={18} />
-                                        <span className="tracking-number">
-                                            {envio.trackingNumber || 'Sin tracking'}
-                                        </span>
+            {/* Sección anterior de envíos demo (colapsada) */}
+            {envios.length > 0 && (
+                <details className="envios-demo-section mt-xl">
+                    <summary className="text-muted">
+                        <Package size={16} />
+                        Envíos locales ({envios.length})
+                    </summary>
+                    <div className="envios-list mt-md">
+                        {envios.map(envio => {
+                            const estadoInfo = ESTADOS_LABELS[envio.estado] || ESTADOS_LABELS.pendiente;
+                            return (
+                                <div key={envio.id} className="envio-card">
+                                    <div className="envio-header">
+                                        <span className="tracking-number">{envio.trackingNumber || 'Sin tracking'}</span>
+                                        <span className={`badge badge-${estadoInfo.color}`}>{estadoInfo.label}</span>
                                     </div>
-                                    <span className={`badge badge-${estadoInfo.color}`}>
-                                        {estadoInfo.label}
-                                    </span>
-                                </div>
-
-                                <div className="envio-body">
-                                    <div className="envio-destinatario">
-                                        <MapPin size={16} />
-                                        <div>
-                                            <strong>{envio.destinatario?.nombre}</strong>
-                                            <p className="text-muted">
-                                                {envio.destinatario?.calle} {envio.destinatario?.altura}, {envio.destinatario?.localidad}
-                                            </p>
-                                        </div>
+                                    <div className="envio-body">
+                                        <strong>{envio.destinatario?.nombre}</strong>
+                                        <p className="text-muted">{envio.destinatario?.localidad}</p>
                                     </div>
                                 </div>
-
-                                <div className="envio-actions">
-                                    <button
-                                        className="btn btn-secondary btn-sm"
-                                        onClick={() => handleVerTracking(envio)}
-                                    >
-                                        <Eye size={14} />
-                                        Tracking
-                                    </button>
-                                    {envio.trackingNumber && envio.estado !== ESTADOS_ENVIO.CANCELADO && (
-                                        <>
-                                            <button
-                                                className="btn btn-primary btn-sm"
-                                                onClick={() => handleDescargarRotulo(envio)}
-                                                disabled={loading}
-                                            >
-                                                <Download size={14} />
-                                                Rótulo
-                                            </button>
-                                            <button
-                                                className="btn btn-success btn-sm"
-                                                onClick={() => handleNotificarDespacho(envio)}
-                                                title="Notificar al cliente por WhatsApp"
-                                            >
-                                                <MessageCircle size={14} />
-                                            </button>
-                                            {envio.estado === ESTADOS_ENVIO.CREADO && (
-                                                <button
-                                                    className="btn btn-ghost btn-sm"
-                                                    onClick={() => handleCancelarEnvio(envio)}
-                                                    disabled={loading}
-                                                >
-                                                    <XCircle size={14} />
-                                                </button>
-                                            )}
-                                        </>
-                                    )}
-                                    <button
-                                        className="btn btn-ghost btn-sm"
-                                        onClick={() => openNotifModal(envio)}
-                                        title="Enviar notificación personalizada"
-                                    >
-                                        <Bell size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                </details>
             )}
 
             {/* Modal Nuevo Envío */}
@@ -1742,6 +2018,253 @@ export default function Envios() {
         @media (max-width: 430px) {
           .notif-types-grid {
             grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        /* Tabs de Envíos */
+        .envios-tabs {
+          display: flex;
+          gap: 0.5rem;
+          background: var(--bg-secondary);
+          padding: 0.5rem;
+          border-radius: var(--radius-lg);
+        }
+
+        .tab-btn {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: transparent;
+          border: none;
+          border-radius: var(--radius-md);
+          color: var(--text-secondary);
+          font-weight: 500;
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .tab-btn:hover {
+          background: var(--bg-tertiary);
+          color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+          background: var(--accent);
+          color: var(--bg-primary);
+        }
+
+        .tab-btn .badge {
+          font-size: 0.7rem;
+          padding: 0.15rem 0.4rem;
+        }
+
+        /* Lista de Pedidos para Envío */
+        .pedidos-envio-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .pedido-envio-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem 1.25rem;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          transition: all var(--transition-fast);
+        }
+
+        .pedido-envio-card:hover {
+          border-color: var(--accent);
+        }
+
+        .pedido-envio-card.despachado {
+          border-left: 3px solid var(--accent);
+        }
+
+        .pedido-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .pedido-numero {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 1rem;
+        }
+
+        .pedido-numero svg {
+          color: var(--accent);
+        }
+
+        .pedido-cliente {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-size: 0.9rem;
+        }
+
+        .cliente-nombre {
+          font-weight: 500;
+        }
+
+        .cliente-tel {
+          color: var(--text-secondary);
+          font-size: 0.85rem;
+        }
+
+        .pedido-ubicacion,
+        .pedido-total,
+        .pedido-fecha {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
+
+        .tracking-info {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-top: 0.25rem;
+        }
+
+        .tracking-number {
+          font-family: monospace;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: var(--accent);
+          background: rgba(245, 158, 11, 0.1);
+          padding: 0.25rem 0.5rem;
+          border-radius: var(--radius-sm);
+        }
+
+        .btn-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: var(--bg-tertiary);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-sm);
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all var(--transition-fast);
+        }
+
+        .btn-icon:hover {
+          background: var(--accent);
+          color: var(--bg-primary);
+          border-color: var(--accent);
+        }
+
+        .pedido-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        /* Tracking Modal */
+        .tracking-modal-content {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .cliente-info-box {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          padding: 1rem;
+          background: var(--bg-tertiary);
+          border-radius: var(--radius-md);
+        }
+
+        .cliente-info-box span {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+        }
+
+        .info-box {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 0.75rem 1rem;
+          background: rgba(59, 130, 246, 0.1);
+          border: 1px solid rgba(59, 130, 246, 0.3);
+          border-radius: var(--radius-md);
+          font-size: 0.85rem;
+          color: var(--text-secondary);
+        }
+
+        .info-box svg {
+          flex-shrink: 0;
+          color: #3b82f6;
+        }
+
+        .loading-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          padding: 3rem;
+          color: var(--text-secondary);
+        }
+
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+
+        /* Envios Demo Section */
+        .envios-demo-section {
+          margin-top: 2rem;
+        }
+
+        .envios-demo-section summary {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: var(--bg-secondary);
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          font-size: 0.9rem;
+        }
+
+        .envios-demo-section summary:hover {
+          background: var(--bg-tertiary);
+        }
+
+        @media (max-width: 768px) {
+          .envios-tabs {
+            flex-direction: column;
+          }
+
+          .pedido-envio-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+          }
+
+          .pedido-actions {
+            justify-content: stretch;
+          }
+
+          .pedido-actions .btn {
+            flex: 1;
+            justify-content: center;
           }
         }
       `}</style>

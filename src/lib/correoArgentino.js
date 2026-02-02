@@ -362,6 +362,50 @@ export async function obtenerSucursales(provinciaId = '') {
 }
 
 /**
+ * Consultar tracking público (sin credenciales)
+ * Usa la URL pública de Correo Argentino
+ * @param {string} trackingNumber - Número de seguimiento
+ * @returns {Promise<{success: boolean, estado?: string, eventos?: Array, error?: string}>}
+ */
+export async function consultarTrackingPublico(trackingNumber) {
+    if (!trackingNumber) {
+        return { success: false, error: 'Número de tracking requerido' };
+    }
+
+    try {
+        // Usar nuestro backend como proxy para evitar CORS
+        const response = await fetch(`/api/envios?action=tracking-publico&tracking=${encodeURIComponent(trackingNumber)}`);
+        
+        if (!response.ok) {
+            const error = await response.json();
+            return { success: false, error: error.error || 'Error consultando tracking' };
+        }
+
+        const data = await response.json();
+        return {
+            success: true,
+            tracking: trackingNumber,
+            estado: data.estado,
+            ultimoEvento: data.ultimoEvento,
+            eventos: data.eventos || [],
+            fechaActualizacion: new Date().toISOString()
+        };
+    } catch (error) {
+        console.error('Error consultando tracking público:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Obtener URL de tracking público de Correo Argentino
+ * @param {string} trackingNumber
+ * @returns {string}
+ */
+export function getTrackingUrl(trackingNumber) {
+    return `https://www.correoargentino.com.ar/formularios/ondnc?id=${trackingNumber}`;
+}
+
+/**
  * Descargar PDF desde base64
  */
 export function descargarPDF(base64, fileName) {
