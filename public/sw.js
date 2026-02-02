@@ -1,10 +1,12 @@
 // ============================================
-// GRABADOS EXPRESS - Service Worker v4
+// GRABADOS EXPRESS - Service Worker v5
 // Enhanced offline support
+// Updated: 2026-02-02 - Force rebuild
 // ============================================
 
 const CACHE_NAME = 'grabados-express-v5';
 const API_CACHE_NAME = 'grabados-express-api-v3';
+const SW_VERSION = 'v5';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
@@ -26,7 +28,7 @@ const CACHEABLE_API_ENDPOINTS = [
 
 // Install - cache static assets
 self.addEventListener('install', (event) => {
-    console.log('[SW] Installing Service Worker v3...');
+    console.log(`[SW] Installing Service Worker ${SW_VERSION}...`);
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
@@ -40,7 +42,7 @@ self.addEventListener('install', (event) => {
 
 // Activate - clean old caches
 self.addEventListener('activate', (event) => {
-    console.log('[SW] Activating Service Worker v3...');
+    console.log(`[SW] Activating Service Worker ${SW_VERSION}...`);
     event.waitUntil(
         Promise.all([
             // Clean old caches
@@ -251,4 +253,4 @@ self.addEventListener('message', (event) => {
     }
 });
 
-console.log('[SW] Service Worker v3 loaded');
+console.log(`[SW] Service Worker ${SW_VERSION} loaded`);
