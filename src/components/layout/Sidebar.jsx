@@ -24,8 +24,8 @@ const navItems = [
     { to: '/pedidos', icon: ClipboardList, label: 'Pedidos', badge: true },
     { to: '/cotizador', icon: Calculator, label: 'Cotizador' },
     { to: '/conversaciones', icon: MessageSquare, label: 'WhatsApp', highlight: true },
+    { to: '/envios', icon: Truck, label: 'Envíos' },
     { to: '/gastos', icon: Receipt, label: 'Gastos' },
-    // { to: '/envios', icon: Truck, label: 'Envíos' }, // Oculto hasta tener credenciales API
     { to: '/asistente', icon: Sparkles, label: 'Asistente IA' },
     { to: '/clientes', icon: Users, label: 'Clientes' },
     { to: '/productos', icon: Package, label: 'Productos' },
