@@ -19,6 +19,7 @@ import {
 import { getEstadisticas } from '../../lib/storage';
 import { useEffect, useState } from 'react';
 
+// Navigation items - v2 con Envíos y WhatsApp
 const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/pedidos', icon: ClipboardList, label: 'Pedidos', badge: true },
