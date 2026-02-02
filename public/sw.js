@@ -1,10 +1,10 @@
 // ============================================
-// GRABADOS EXPRESS - Service Worker v3
+// GRABADOS EXPRESS - Service Worker v4
 // Enhanced offline support
 // ============================================
 
-const CACHE_NAME = 'grabados-express-v3';
-const API_CACHE_NAME = 'grabados-express-api-v1';
+const CACHE_NAME = 'grabados-express-v4';
+const API_CACHE_NAME = 'grabados-express-api-v2';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
