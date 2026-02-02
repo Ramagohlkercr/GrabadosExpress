@@ -3,8 +3,8 @@
 // Enhanced offline support
 // ============================================
 
-const CACHE_NAME = 'grabados-express-v4';
-const API_CACHE_NAME = 'grabados-express-api-v2';
+const CACHE_NAME = 'grabados-express-v5';
+const API_CACHE_NAME = 'grabados-express-api-v3';
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
