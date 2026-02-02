@@ -43,9 +43,19 @@ export default async function handler(req, res) {
 
     const { method } = req;
     const id = req.query.id;
-    const action = req.query.action; // for estado updates and calendario
+    const action = req.query.action; // for estado updates, calendario, and envios
 
     try {
+        // ============================================
+        // ACCIONES DE ENVÍOS (integradas)
+        // ============================================
+        if (action === 'envios-listar') {
+            return await listarPedidosEnvio(req, res);
+        }
+        if (action === 'asignar-tracking') {
+            return await asignarTracking(req, res);
+        }
+
         switch (method) {
             case 'GET':
                 if (action === 'calendario') {
@@ -195,4 +205,93 @@ export default async function handler(req, res) {
         console.error('Pedidos API Error:', error);
         return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
     }
+}
+
+// ============================================
+// FUNCIONES DE ENVÍOS
+// ============================================
+
+async function listarPedidosEnvio(req, res) {
+    const { filter } = req.query; // 'pendientes' o 'despachados'
+    
+    let sql = `
+        SELECT p.*, c.nombre as cliente_nombre, c.telefono as cliente_telefono,
+               c.email as cliente_email, c.direccion as cliente_direccion
+        FROM pedidos p
+        LEFT JOIN clientes c ON p.cliente_id = c.id
+        WHERE p.estado IN ('confirmado', 'en_proceso', 'listo', 'enviado', 'entregado')
+    `;
+    
+    if (filter === 'pendientes') {
+        sql += ` AND (p.envio_tracking IS NULL OR p.envio_tracking = '')`;
+    } else if (filter === 'despachados') {
+        sql += ` AND p.envio_tracking IS NOT NULL AND p.envio_tracking != ''`;
+    }
+    
+    sql += ` ORDER BY p.created_at DESC`;
+    
+    const result = await query(sql);
+    
+    // Map con datos de envío
+    const pedidos = result.rows.map(row => ({
+        ...mapPedido(row),
+        envio: {
+            estado: row.envio_estado || 'pendiente',
+            tracking: row.envio_tracking || null,
+            tipo: row.envio_tipo || null,
+            sucursalId: row.envio_sucursal_id || null,
+            sucursalNombre: row.envio_sucursal_nombre || null,
+            costo: parseFloat(row.envio_costo || 0),
+            fechaDespacho: row.envio_fecha_despacho || null,
+            fechaEntregaEstimada: row.envio_fecha_entrega_estimada || null,
+            ultimoEvento: row.envio_ultimo_evento || null
+        }
+    }));
+    
+    return res.json(pedidos);
+}
+
+async function asignarTracking(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+    
+    const { pedidoId, tracking, sucursalNombre } = req.body;
+    
+    if (!pedidoId || !tracking) {
+        return res.status(400).json({ error: 'pedidoId y tracking son requeridos' });
+    }
+    
+    // Actualizar pedido con tracking
+    const result = await query(`
+        UPDATE pedidos SET
+            envio_tracking = $1,
+            envio_sucursal_nombre = $2,
+            envio_estado = 'despachado',
+            envio_fecha_despacho = NOW(),
+            estado = 'enviado',
+            updated_at = NOW()
+        WHERE id = $3
+        RETURNING *
+    `, [tracking, sucursalNombre || null, pedidoId]);
+    
+    if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Pedido no encontrado' });
+    }
+    
+    const pedido = result.rows[0];
+    
+    // Obtener datos del cliente
+    const clienteResult = await query(
+        'SELECT * FROM clientes WHERE id = $1',
+        [pedido.cliente_id]
+    );
+    
+    return res.json({
+        success: true,
+        pedido: mapPedido(pedido),
+        cliente: clienteResult.rows[0] || null,
+        tracking,
+        message: 'Tracking asignado correctamente'
+    });
 }

@@ -1,8 +1,9 @@
 // ============================================
 // GRABADOS EXPRESS - Envíos y Notificaciones API Client
+// Usa /api/pedidos para funciones de envío (consolidado)
 // ============================================
 
-const API_BASE = '/api/envios';
+const API_BASE = '/api/pedidos';
 
 /**
  * API para gestión de envíos con Correo Argentino
@@ -111,9 +112,9 @@ export const enviosApi = {
     /**
      * Listar pedidos con envío
      */
-    async listar(estado = null) {
-        let url = `${API_BASE}?action=listar`;
-        if (estado) url += `&estado=${estado}`;
+    async listar(filter = null) {
+        let url = `${API_BASE}?action=envios-listar`;
+        if (filter) url += `&filter=${filter}`;
         const response = await fetch(url);
         return response.json();
     },
