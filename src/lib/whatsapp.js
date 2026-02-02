@@ -146,6 +146,34 @@ Te recordamos que tenés un pedido *pendiente de retiro*:
 ¿Cuándo te queda cómodo pasar a buscarlo? 📍`;
 }
 
+// Shipping notification with tracking
+export function mensajeEnvioTracking(pedido, cliente, tracking, sucursal = null) {
+    const config = getConfiguracion();
+    const nombreNegocio = config.nombreNegocio || 'Grabados Express';
+    const trackingUrl = `https://www.correoargentino.com.ar/formularios/ondnc?id=${tracking}`;
+
+    let mensaje = `¡Hola ${cliente.nombre}! 👋
+
+🚚 ¡Tu pedido #${pedido.numero} ya fue *DESPACHADO*!
+
+📦 *Código de seguimiento:* ${tracking}`;
+
+    if (sucursal) {
+        mensaje += `\n📍 *Destino:* Sucursal ${sucursal}`;
+    }
+
+    mensaje += `
+
+🔍 *Seguí tu envío acá:*
+${trackingUrl}
+
+Te llegará en aproximadamente 3-5 días hábiles.
+
+¡Gracias por tu compra en ${nombreNegocio}! ✨`;
+
+    return mensaje;
+}
+
 // Custom message
 export function enviarMensajePersonalizado(cliente, mensaje) {
     if (!cliente.telefono) return false;
@@ -153,7 +181,7 @@ export function enviarMensajePersonalizado(cliente, mensaje) {
 }
 
 // Send message to client by pedido
-export function enviarMensajePedido(pedido, tipo) {
+export function enviarMensajePedido(pedido, tipo, extra = {}) {
     const cliente = getClienteById(pedido.clienteId);
     if (!cliente || !cliente.telefono) return false;
 
@@ -170,6 +198,11 @@ export function enviarMensajePedido(pedido, tipo) {
             break;
         case 'recordatorio':
             mensaje = mensajeRecordatorio(pedido, cliente);
+            break;
+        case 'envio':
+        case 'tracking':
+            if (!extra.tracking) return false;
+            mensaje = mensajeEnvioTracking(pedido, cliente, extra.tracking, extra.sucursal);
             break;
         default:
             return false;
