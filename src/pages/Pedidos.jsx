@@ -41,7 +41,8 @@ import {
     formatearFecha,
     formatearFechaRelativa,
     getNivelUrgencia,
-    calcularFechaEntrega
+    calcularFechaEntrega,
+    diasParaEntrega
 } from '../lib/dateUtils';
 import { enviarMensajePedido } from '../lib/whatsapp';
 import toast from 'react-hot-toast';
@@ -108,14 +109,34 @@ export default function Pedidos() {
             filtered = filtered.filter(p => p.estado === filterEstado);
         }
 
-        // Sort by urgency and date
+        // Sort by urgency and date - most urgent first
+        // Exclude delivered/cancelled from urgency sorting
         filtered.sort((a, b) => {
+            const estadosFinales = ['entregado', 'cancelado'];
+            const aFinal = estadosFinales.includes(a.estado);
+            const bFinal = estadosFinales.includes(b.estado);
+            
+            // Final states go last
+            if (aFinal && !bFinal) return 1;
+            if (!aFinal && bFinal) return -1;
+            if (aFinal && bFinal) {
+                return new Date(b.updatedAt || b.updated_at || b.createdAt) - new Date(a.updatedAt || a.updated_at || a.createdAt);
+            }
+            
+            // Active orders: sort by urgency
             const urgA = getNivelUrgencia(a.fechaEntregaEstimada);
             const urgB = getNivelUrgencia(b.fechaEntregaEstimada);
             const urgOrder = { atrasado: 0, hoy: 1, urgente: 2, proximo: 3, normal: 4 };
 
             if (urgOrder[urgA] !== urgOrder[urgB]) {
                 return urgOrder[urgA] - urgOrder[urgB];
+            }
+
+            // Same urgency: sort by days remaining (closest first)
+            const diasA = diasParaEntrega(a.fechaEntregaEstimada);
+            const diasB = diasParaEntrega(b.fechaEntregaEstimada);
+            if (diasA !== null && diasB !== null && diasA !== diasB) {
+                return diasA - diasB;
             }
 
             return new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at);
@@ -698,10 +719,29 @@ export default function Pedidos() {
                                         <span className={`badge badge-${estadoInfo.color}`}>
                                             {estadoInfo.label}
                                         </span>
+                                        {/* Badges de urgencia */}
                                         {urgencia === 'atrasado' && (
-                                            <span className="badge badge-danger">
+                                            <span className="badge badge-danger urgency-badge">
                                                 <AlertTriangle size={12} />
-                                                Atrasado
+                                                {Math.abs(diasParaEntrega(pedido.fechaEntregaEstimada))}d atrasado
+                                            </span>
+                                        )}
+                                        {urgencia === 'hoy' && (
+                                            <span className="badge badge-warning urgency-badge">
+                                                <Clock size={12} />
+                                                ¡Hoy!
+                                            </span>
+                                        )}
+                                        {urgencia === 'urgente' && (
+                                            <span className="badge badge-warning urgency-badge">
+                                                <AlertTriangle size={12} />
+                                                {diasParaEntrega(pedido.fechaEntregaEstimada)}d restante{diasParaEntrega(pedido.fechaEntregaEstimada) !== 1 ? 's' : ''}
+                                            </span>
+                                        )}
+                                        {urgencia === 'proximo' && pedido.estado !== 'entregado' && pedido.estado !== 'cancelado' && (
+                                            <span className="badge badge-info urgency-badge">
+                                                <Calendar size={12} />
+                                                {diasParaEntrega(pedido.fechaEntregaEstimada)}d
                                             </span>
                                         )}
                                     </div>
@@ -1654,6 +1694,43 @@ export default function Pedidos() {
         
         .pedido-card.proximo {
           border-left-color: var(--accent);
+        }
+
+        /* Urgency badges */
+        .urgency-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-weight: 600;
+          animation: pulse-urgency 2s ease-in-out infinite;
+        }
+        
+        .badge-danger.urgency-badge {
+          animation: pulse-danger 1s ease-in-out infinite;
+        }
+        
+        .badge-warning.urgency-badge {
+          animation: pulse-warning 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-danger {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        @keyframes pulse-warning {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+        
+        @keyframes pulse-urgency {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.85; }
+        }
+        
+        .badge-info {
+          background: var(--accent-bg);
+          color: var(--accent);
         }
         
         .pedido-header {
