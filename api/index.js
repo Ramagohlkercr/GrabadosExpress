@@ -15,23 +15,14 @@ app.use(cors({
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));
 
-// Root endpoint - also serves as health check
+// Root endpoint
 app.all('/', (req, res) => {
-    // If ?health query param, return simple health check
-    if (req.query.health !== undefined) {
-        return res.json({ 
-            status: 'ok', 
-            timestamp: new Date().toISOString(),
-            platform: 'vercel'
-        });
-    }
-    
     res.json({
         name: 'GrabadosExpress API',
         version: '1.0.0',
         status: 'running on Vercel',
         endpoints: {
-            health: '/api?health',
+            health: '/api/health',
             clientes: '/api/clientes',
             productos: '/api/productos',
             insumos: '/api/insumos',
