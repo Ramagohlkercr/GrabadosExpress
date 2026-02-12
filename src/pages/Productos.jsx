@@ -15,7 +15,7 @@ import {
     deleteProductoAsync,
     getConfiguracionAsync
 } from '../lib/storageApi';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 const emptyProducto = {
     nombre: '',
@@ -28,6 +28,7 @@ const emptyProducto = {
 };
 
 export default function Productos() {
+    const toast = useToast();
     const [productos, setProductos] = useState([]);
     const [filteredProductos, setFilteredProductos] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');

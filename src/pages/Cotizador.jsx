@@ -24,9 +24,10 @@ import {
 } from '../lib/storageApi';
 import { calcularFechaEntrega, formatearFecha, formatearFechaConDia } from '../lib/dateUtils';
 import { mensajeCotizacion, enviarWhatsApp } from '../lib/whatsapp';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 export default function Cotizador() {
+    const toast = useToast();
     const navigate = useNavigate();
     const [productos, setProductos] = useState([]);
     const [clientes, setClientes] = useState([]);

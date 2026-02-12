@@ -43,7 +43,7 @@ import {
 } from '../lib/precios';
 import { calcularFechaEntrega, formatearFecha, formatearFechaConDia } from '../lib/dateUtils';
 import { analyzeImage, analyzeLogoText } from '../lib/imageAnalysis';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 // Datos del negocio
 const WHATSAPP_NEGOCIO = '3412278217';
@@ -501,6 +501,7 @@ function validateOrder(order) {
 // ============================================
 
 export default function Asistente() {
+    const toast = useToast();
     const [clientes, setClientes] = useState([]);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');

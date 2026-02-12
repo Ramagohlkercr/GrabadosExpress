@@ -45,9 +45,10 @@ import {
     diasParaEntrega
 } from '../lib/dateUtils';
 import { enviarMensajePedido } from '../lib/whatsapp';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 export default function Pedidos() {
+    const toast = useToast();
     const [pedidos, setPedidos] = useState([]);
     const [filteredPedidos, setFilteredPedidos] = useState([]);
     const [clientes, setClientes] = useState([]);
@@ -182,11 +183,17 @@ export default function Pedidos() {
 
         try {
             await updateEstadoPedidoAsync(pedido.id, nuevoEstado, fechaEntrega);
-            toast.success(`Estado actualizado: ${ESTADOS_LABELS[nuevoEstado].label}`);
+            
+            // Notificación específica de cambio de estado
+            const cliente = getCliente(pedido.clienteId);
+            toast.pedidoActualizado({
+                ...pedido,
+                clienteNombre: cliente?.nombre || pedido.clienteNombre
+            }, nuevoEstado);
+            
             await loadData();
 
             // Offer to send WhatsApp
-            const cliente = getCliente(pedido.clienteId);
             if (cliente?.telefono) {
                 let tipoMensaje = null;
                 if (nuevoEstado === ESTADOS_PEDIDO.EN_PRODUCCION) tipoMensaje = 'produccion';
@@ -569,7 +576,14 @@ export default function Pedidos() {
             };
 
             const nuevoPedido = await savePedidoAsync(pedido);
-            toast.success('¡Pedido creado! Entrega estimada: ' + formatearFecha(fechaEntrega.fechaEstimada));
+            
+            // Notificación especial de pedido creado
+            const clienteNombre = getCliente(clienteId)?.nombre || orderForm.nuevoClienteNombre;
+            toast.pedidoCreado({
+                cliente: clienteNombre,
+                items: orderForm.items,
+                fechaEntrega: fechaEntrega.fechaEstimada
+            });
 
             setNewOrderModalOpen(false);
             await loadData();

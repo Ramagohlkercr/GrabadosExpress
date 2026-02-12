@@ -55,7 +55,7 @@ import {
     getLocalidadesByProvincia
 } from '../lib/sucursalesCorreo';
 import { notificacionesApi, TIPOS_NOTIFICACION } from '../lib/enviosApi';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 const ESTADOS_ENVIO = {
     PENDIENTE: 'pendiente',
@@ -139,6 +139,7 @@ const emptyEnvio = {
 };
 
 export default function Envios() {
+    const toast = useToast();
     const navigate = useNavigate();
     const [envios, setEnvios] = useState([]);
     const [filteredEnvios, setFilteredEnvios] = useState([]);

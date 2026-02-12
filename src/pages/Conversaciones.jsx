@@ -22,9 +22,10 @@ import {
 import { conversacionesApi } from '../lib/whatsappApi';
 import { getClientesAsync } from '../lib/storageApi';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 export default function Conversaciones() {
+    const toast = useToast();
     const [conversaciones, setConversaciones] = useState([]);
     const [selectedConv, setSelectedConv] = useState(null);
     const [messages, setMessages] = useState([]);

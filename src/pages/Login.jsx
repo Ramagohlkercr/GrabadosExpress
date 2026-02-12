@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff, Loader2, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 export default function Login() {
+    const toast = useToast();
     const navigate = useNavigate();
     const { login, isAuthenticated, loading: authLoading } = useAuth();
 

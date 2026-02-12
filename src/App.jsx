@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ToastProvider } from './components/ui/Toast';
 import PrivateRoute from './components/PrivateRoute';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
@@ -67,27 +68,29 @@ function ProtectedLayout({ children }) {
 export default function App() {
     return (
         <AuthProvider>
-            <Routes>
-                {/* Public route */}
-                <Route path="/login" element={<Login />} />
-                
-                {/* Protected routes */}
-                <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-                <Route path="/clientes" element={<ProtectedLayout><Clientes /></ProtectedLayout>} />
-                <Route path="/productos" element={<ProtectedLayout><Productos /></ProtectedLayout>} />
-                <Route path="/insumos" element={<ProtectedLayout><Insumos /></ProtectedLayout>} />
-                <Route path="/cotizador" element={<ProtectedLayout><Cotizador /></ProtectedLayout>} />
-                <Route path="/pedidos" element={<ProtectedLayout><Pedidos /></ProtectedLayout>} />
-                <Route path="/calendario" element={<ProtectedLayout><Calendario /></ProtectedLayout>} />
-                <Route path="/configuracion" element={<ProtectedLayout><Configuracion /></ProtectedLayout>} />
-                <Route path="/asistente" element={<ProtectedLayout><Asistente /></ProtectedLayout>} />
-                <Route path="/envios" element={<ProtectedLayout><Envios /></ProtectedLayout>} />
-                <Route path="/gastos" element={<ProtectedLayout><Gastos /></ProtectedLayout>} />
-                <Route path="/conversaciones" element={<ProtectedLayout><Conversaciones /></ProtectedLayout>} />
-                
-                {/* Catch all - redirect to home */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <ToastProvider>
+                <Routes>
+                    {/* Public route */}
+                    <Route path="/login" element={<Login />} />
+                    
+                    {/* Protected routes */}
+                    <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
+                    <Route path="/clientes" element={<ProtectedLayout><Clientes /></ProtectedLayout>} />
+                    <Route path="/productos" element={<ProtectedLayout><Productos /></ProtectedLayout>} />
+                    <Route path="/insumos" element={<ProtectedLayout><Insumos /></ProtectedLayout>} />
+                    <Route path="/cotizador" element={<ProtectedLayout><Cotizador /></ProtectedLayout>} />
+                    <Route path="/pedidos" element={<ProtectedLayout><Pedidos /></ProtectedLayout>} />
+                    <Route path="/calendario" element={<ProtectedLayout><Calendario /></ProtectedLayout>} />
+                    <Route path="/configuracion" element={<ProtectedLayout><Configuracion /></ProtectedLayout>} />
+                    <Route path="/asistente" element={<ProtectedLayout><Asistente /></ProtectedLayout>} />
+                    <Route path="/envios" element={<ProtectedLayout><Envios /></ProtectedLayout>} />
+                    <Route path="/gastos" element={<ProtectedLayout><Gastos /></ProtectedLayout>} />
+                    <Route path="/conversaciones" element={<ProtectedLayout><Conversaciones /></ProtectedLayout>} />
+                    
+                    {/* Catch all - redirect to home */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </ToastProvider>
         </AuthProvider>
     );
 }

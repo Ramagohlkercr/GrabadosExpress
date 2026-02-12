@@ -43,6 +43,8 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, Area, AreaChart
 } from 'recharts';
+import { useUrgentNotifications } from '../hooks/useUrgentNotifications';
+import { requestNotificationPermission } from '../lib/pushNotifications';
 
 
 export default function Dashboard() {
@@ -150,6 +152,9 @@ export default function Dashboard() {
 
         setPedidosRecientes(pedidosActivos);
         setEntregasSemana(getEntregasSemana(pedidos));
+        
+        // Request notification permission on first load
+        requestNotificationPermission();
       } catch (error) {
         console.error('Error loading dashboard:', error);
       } finally {
@@ -159,6 +164,9 @@ export default function Dashboard() {
 
     loadData();
   }, []);
+
+  // Hook para notificaciones de urgencia
+  useUrgentNotifications(pedidosRecientes);
 
   const getCliente = (clienteId) => clientes.find(c => c.id === clienteId);
 

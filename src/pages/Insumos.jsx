@@ -18,7 +18,7 @@ import {
     deleteInsumoAsync,
     updateStockAsync
 } from '../lib/storageApi';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 const emptyInsumo = {
     nombre: '',
@@ -31,6 +31,7 @@ const emptyInsumo = {
 };
 
 export default function Insumos() {
+    const toast = useToast();
     const [insumos, setInsumos] = useState([]);
     const [filteredInsumos, setFilteredInsumos] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');

@@ -31,7 +31,7 @@ import {
     importData
 } from '../lib/storageApi';
 import { whatsappConfigApi } from '../lib/whatsappApi';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 // Prompt de ejemplo completo para la IA
 const promptEjemplo = `## IDENTIDAD
@@ -136,6 +136,7 @@ IMPORTANTE: Solo agregar el bloque de pedido cuando el cliente CONFIRMA. No agre
 4. Objetivo: generar confianza → cerrar venta → crear pedido`;
 
 export default function Configuracion() {
+    const toast = useToast();
     const [config, setConfig] = useState({
         nombreNegocio: '',
         telefono: '',

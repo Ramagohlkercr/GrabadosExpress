@@ -25,7 +25,7 @@ import {
     ESTADOS_LABELS
 } from '../lib/storageApi';
 import { enviarWhatsApp } from '../lib/whatsapp';
-import toast from 'react-hot-toast';
+import { useToast } from '../components/ui/Toast';
 
 const FORMAS_ETIQUETA = [
     { id: 'rectangular', nombre: 'Rectangular', icon: '▬' },
@@ -54,6 +54,7 @@ const emptyCliente = {
 };
 
 export default function Clientes() {
+    const toast = useToast();
     const [clientes, setClientes] = useState([]);
     const [filteredClientes, setFilteredClientes] = useState([]);
     const [pedidos, setPedidos] = useState([]);
@@ -112,7 +113,12 @@ export default function Clientes() {
         try {
             setSaving(true);
             await saveClienteAsync(editingCliente ? { ...formData, id: editingCliente.id } : formData);
-            toast.success(editingCliente ? 'Cliente actualizado' : 'Cliente creado');
+            
+            if (editingCliente) {
+                toast.success('Cliente actualizado');
+            } else {
+                toast.clienteCreado(formData.nombre);
+            }
 
             setModalOpen(false);
             setEditingCliente(null);
